@@ -27,7 +27,7 @@ export default function DashboardPage() {
           api.getSaved(),
           api.getRoadmaps(),
           api.getTimeline(),
-          api.getOpportunities({ limit: 4, sort: 'relevance' }),
+          api.getRecommendations(4).catch(() => api.getOpportunities({ limit: 4, sort: 'relevance' })),
           api.getMyPeerMatches().catch(() => ({ received: [], sent: [] }))
         ]);
 
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                 {[...(timeline?.critical || []), ...(timeline?.approaching || [])].slice(0, 3).map(item => (
                   <div key={item.savedId} className={`timeline-urgent-card ${item.daysRemaining <= 3 ? 'timeline-critical' : 'timeline-approaching'}`}>
                     <h5 style={{ fontSize: '0.9rem', fontWeight: 700 }}>
-                      <Link to={`/opportunity/${item.opportunityId}`} style={{ color: 'inherit' }}>
+                      <Link to={`/opportunities/${item.opportunityId}`} style={{ color: 'inherit' }}>
                         {item.title}
                       </Link>
                     </h5>

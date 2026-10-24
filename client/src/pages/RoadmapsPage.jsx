@@ -203,7 +203,7 @@ export default function RoadmapsPage() {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {selectedRoadmap.opportunityId && (
                     <Link
-                      to={`/opportunity/${selectedRoadmap.opportunityId}`}
+                      to={`/opportunities/${selectedRoadmap.opportunityId}`}
                       className="btn btn-secondary btn-sm"
                     >
                       <span>Opportunity Details</span>

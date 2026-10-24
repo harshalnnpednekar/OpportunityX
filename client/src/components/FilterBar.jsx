@@ -1,5 +1,6 @@
-import React from 'react';
-import { Search, RotateCcw, Filter, SlidersHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, RotateCcw } from 'lucide-react';
+import useDebouncedValue from '../hooks/useDebouncedValue';
 
 const CATEGORIES = [
   { id: 'all', label: 'All Opportunities' },
@@ -11,6 +12,28 @@ const CATEGORIES = [
 ];
 
 export default function FilterBar({ filters, onFilterChange, onReset }) {
+  const [searchInput, setSearchInput] = useState(filters.search || '');
+  const debouncedSearch = useDebouncedValue(searchInput, 350);
+
+  // Sync debounced search to parent filter state
+  useEffect(() => {
+    if (debouncedSearch !== (filters.search || '')) {
+      onFilterChange('search', debouncedSearch);
+    }
+  }, [debouncedSearch]);
+
+  // Sync incoming filters.search changes (e.g., reset button)
+  useEffect(() => {
+    if (filters.search !== searchInput && (filters.search === '' || filters.search !== debouncedSearch)) {
+      setSearchInput(filters.search || '');
+    }
+  }, [filters.search]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    onFilterChange('search', searchInput.trim());
+  };
+
   const handleCategorySelect = (catId) => {
     onFilterChange('type', catId === 'all' ? '' : catId);
   };
@@ -27,18 +50,18 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
 
   return (
     <div className="filter-container" role="search" aria-label="Opportunity filters">
-      {/* Primary Search Bar */}
-      <div className="search-input-wrapper">
-        <Search size={18} className="search-icon" />
+      {/* Primary Search Bar with Debounce */}
+      <form onSubmit={handleSearchSubmit} className="search-input-wrapper">
+        <Search size={18} className="search-icon" aria-hidden="true" />
         <input
           type="text"
           className="search-input"
           placeholder="Search by keyword, tool (e.g. PyTorch, Rust, ROS), topic (e.g. Climate, AI), or organizer..."
-          value={filters.search || ''}
-          onChange={(e) => onFilterChange('search', e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           aria-label="Search opportunities"
         />
-      </div>
+      </form>
 
       {/* Primary Category Quick-Pills */}
       <div className="filter-categories-pills">

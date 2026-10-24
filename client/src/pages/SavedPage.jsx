@@ -161,7 +161,7 @@ export default function SavedPage() {
                       )}
                     </div>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0.2rem 0' }}>
-                      <Link to={`/opportunity/${opp.slug || opp.id}`} style={{ color: 'inherit' }}>
+                      <Link to={`/opportunities/${opp.slug || opp.id}`} style={{ color: 'inherit' }}>
                         {opp.title}
                       </Link>
                     </h3>

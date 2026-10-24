@@ -4,26 +4,35 @@ import { Compass, Bell, Bookmark, Map, Users, Shield, User, LogOut, Menu, X } fr
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
-export default function Navbar({ onOpenNotifications }) {
+export default function Navbar({ onOpenNotifications, notificationCount = 0 }) {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [urgentDeadlineCount, setUrgentDeadlineCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(notificationCount);
+
+  useEffect(() => {
+    setUnreadCount(notificationCount);
+  }, [notificationCount]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    async function checkDeadlines() {
+    async function checkActivity() {
       try {
-        const data = await api.getTimeline();
-        const urgent = (data.timeline?.critical?.length || 0) + (data.timeline?.approaching?.length || 0);
-        setUrgentDeadlineCount(urgent);
+        const [notifRes, timelineRes] = await Promise.all([
+          api.getNotifications().catch(() => ({ unreadCount: 0 })),
+          api.getTimeline().catch(() => ({ timeline: null }))
+        ]);
+
+        const notifs = notifRes.unreadCount || (notifRes.notifications || []).filter(n => !n.readAt).length;
+        const urgent = (timelineRes.timeline?.critical?.length || 0) + (timelineRes.timeline?.approaching?.length || 0);
+        setUnreadCount(notifs + urgent);
       } catch (err) {
         // Silently fail if guest or offline
       }
     }
 
-    checkDeadlines();
+    checkActivity();
   }, [isAuthenticated]);
 
   const handleLogout = async () => {
@@ -67,7 +76,7 @@ export default function Navbar({ onOpenNotifications }) {
                 </NavLink>
               </li>
               <li>
-                <NavLink to="/peer-matching" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/peers" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
                   Peer Matching
                 </NavLink>
               </li>
@@ -90,20 +99,20 @@ export default function Navbar({ onOpenNotifications }) {
               <button
                 onClick={onOpenNotifications}
                 className="nav-notification-btn"
-                aria-label={`View deadline notifications (${urgentDeadlineCount} urgent)`}
-                title="Upcoming Deadlines"
+                aria-label={`View notifications (${unreadCount} unread)`}
+                title="Activity & Deadlines"
               >
                 <Bell size={18} />
-                {urgentDeadlineCount > 0 && (
+                {unreadCount > 0 && (
                   <span className="notification-count-badge">
-                    {urgentDeadlineCount}
+                    {unreadCount}
                   </span>
                 )}
               </button>
 
               <Link to="/profile" className="nav-user-dropdown" title="Edit Profile">
                 <User size={15} />
-                <span>{user?.profile?.fullName?.split(' ')[0] || 'Student'}</span>
+                <span>{user?.name?.split(' ')[0] || user?.profile?.fullName?.split(' ')[0] || 'Student'}</span>
               </Link>
 
               <button
@@ -161,14 +170,14 @@ export default function Navbar({ onOpenNotifications }) {
               <Link to="/saved" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--ink-primary)' }}>
                 Saved Opportunities
               </Link>
-              <Link to="/peer-matching" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--ink-primary)' }}>
+              <Link to="/peers" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--ink-primary)' }}>
                 Peer Matching
               </Link>
               <Link to="/profile" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--ink-primary)' }}>
                 Profile Editor
               </Link>
               {isAdmin && (
-                <Link to="/admin" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--accent-violet-600)', fontWeight: 600 }}>
+                <Link to="/admin" onClick={() => setMobileMenuOpen(false)} style={{ color: 'var(--accent-teal)', fontWeight: 600 }}>
                   Admin Ingestion Hub
                 </Link>
               )}

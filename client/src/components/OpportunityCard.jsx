@@ -89,7 +89,7 @@ export default function OpportunityCard({ opportunity, onSavedChange }) {
       <span className="card-org">{opportunity.organization}</span>
 
       <h3 className="card-title">
-        <Link to={`/opportunity/${opportunity.slug || opportunity.id}`}>
+        <Link to={`/opportunities/${opportunity.slug || opportunity.id}`}>
           {opportunity.title}
         </Link>
       </h3>
@@ -211,7 +211,7 @@ export default function OpportunityCard({ opportunity, onSavedChange }) {
         </div>
 
         <Link
-          to={`/opportunity/${opportunity.slug || opportunity.id}`}
+          to={`/opportunities/${opportunity.slug || opportunity.id}`}
           className="btn btn-secondary btn-sm"
         >
           <span>View Details</span>
