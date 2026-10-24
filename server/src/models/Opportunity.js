@@ -262,14 +262,16 @@ const Opportunity = sequelize.define('Opportunity', {
   ],
   getterMethods: {
     dataQualityFlags() {
+      const stored = this.getDataValue('dataQualityFlags') || [];
       const missing = this.missingFields || [];
       const contra = this.contradictionFlags || [];
-      return Array.from(new Set([...missing, ...contra]));
+      return Array.from(new Set([...stored, ...missing, ...contra]));
     }
   },
   setterMethods: {
     dataQualityFlags(flags) {
       if (Array.isArray(flags)) {
+        this.setDataValue('dataQualityFlags', flags);
         const missing = flags.filter(f => String(f).startsWith('missing_') || String(f).includes('missing'));
         const contra = flags.filter(f => !missing.includes(f));
         this.setDataValue('missingFields', missing);

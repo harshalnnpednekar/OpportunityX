@@ -205,7 +205,20 @@ Restricted strictly to users with `role: "admin"`. Non-admin accounts receive `4
 | `POST` | `/api/admin/feeds/import` | Admin | Ingest local feed using validated identifier |
 | `GET` | `/api/admin/imports` | Admin | Paginated feed ingestion history & metrics |
 
-> **Security Whitelist**: `POST /api/admin/feeds/import` strictly validates against registered local feed identifiers (`sample-json-a`, `sample-xml-a`, `sample-json-b`, `hackathons`, `competitions`, `workshops`). Raw filesystem paths, path traversal sequences (`../`), or untrusted strings are rejected with `400 Bad Request`.
+> **Security Whitelist**: `POST /api/admin/feeds/import` strictly validates against registered local feed identifiers (`sample-json-a`, `sample-xml-a`, `sample-json-b`, `hackathons`, `competitions`, `workshops`, `all`). Raw filesystem paths, path traversal sequences (`../`), or untrusted strings are rejected with `400 Bad Request`.
+
+---
+
+#### 8. Data Import Pipeline Architecture
+- **Three Sample Local Fixtures**:
+  - `sample-hackathons.json` (JSON Feed A): standard collegiate items schema.
+  - `sample-workshops.json` (JSON Feed B): distinct workshop registry schema demonstrating alternative keys, nested tuition objects, and delivery modes.
+  - `sample-competitions.xml` (XML Feed C): academic XML tree structure parsed safely with entity expansion (XXE) disabled.
+- **Normalization Engine**: Normalizes whitespace, title/organizer capitalization, dates, formats (`virtual`, `in-person`, `hybrid`), locations, and cost structures.
+- **Conservative Merging & Review Queue**: Exact matches on normalized fingerprint (title, organizer, event date) or source record ID are updated or linked. Uncertain matches with high title similarity are routed to the flagged review queue rather than destructively merged.
+- **Idempotency & Change Notices**: Repeated ingestion runs do not create duplicates (`recordsUpdated` increments, `recordsCreated` remains 0). Meaningful changes to deadlines, costs, formats, or links generate `OpportunityUpdate` audit records and notify students who saved the listing.
+- **Streams, Buffers & EventEmitter**: Fixture reading utilizes safe Node.js streams and buffers confined to allowed directories. An EventEmitter broadcasts `import:started`, `import:completed`, and `import:error` events.
+- **DEMO/SAMPLE Labeling**: All fixtures are explicitly labeled as demonstration datasets. No external scraping or unauthorized access is performed.
 
 ---
 
@@ -218,7 +231,7 @@ The test suite runs against the test database using Jest and Supertest:
 npm test
 
 # Run a specific test suite
-npx jest tests/restApi.test.js
+npx jest tests/feedIngestion.test.js
 ```
 
-Current test status: **9 test suites passed, 73 total tests passed**.
+Current test status: **10 test suites passed, 100 total tests passed**.

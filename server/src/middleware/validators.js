@@ -226,7 +226,9 @@ const ALLOWED_FEED_IDENTIFIERS = [
   'sample-json-b',
   'hackathons',
   'competitions',
-  'workshops'
+  'workshops',
+  'all',
+  'all-default-feeds'
 ];
 
 const validateAdminFeedImport = [

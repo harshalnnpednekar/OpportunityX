@@ -21,9 +21,19 @@ const importFeed = async (req, res, next) => {
   try {
     const feedIdentifier = (req.body.feedId || req.body.feedIdentifier || req.body.feedName || req.body.feed || '').toLowerCase().trim();
 
+    if (feedIdentifier === 'all' || feedIdentifier === 'all-default-feeds') {
+      const allResults = await FeedImporter.importAllDefaultFeeds();
+      return res.status(200).json({
+        message: 'All default local sample feeds imported successfully.',
+        batches: allResults,
+        import: allResults[0] || null,
+        report: allResults
+      });
+    }
+
     if (!feedIdentifier || !FEED_WHITELIST[feedIdentifier]) {
       return res.status(400).json({
-        error: `Invalid feed identifier: "${feedIdentifier}". Allowed identifiers: ${Object.keys(FEED_WHITELIST).join(', ')}`
+        error: `Invalid feed identifier: "${feedIdentifier}". Allowed identifiers: ${Object.keys(FEED_WHITELIST).join(', ')}, all`
       });
     }
 
@@ -44,7 +54,8 @@ const importFeed = async (req, res, next) => {
 
     res.status(200).json({
       message: `Feed "${feedIdentifier}" imported successfully.`,
-      import: result.importLog || result,
+      import: result,
+      report: result,
       details: result.details || []
     });
   } catch (err) {

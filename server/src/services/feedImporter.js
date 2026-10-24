@@ -1,29 +1,132 @@
-const fs = require('fs');
 const path = require('path');
 const FeedNormalizer = require('./feedNormalizer');
-const { Opportunity, FeedImport } = require('../models');
+const FixtureReader = require('../utils/fixtureReader');
+const importEvents = require('./importEvents');
+const {
+  Opportunity,
+  FeedImport,
+  OpportunityUpdate,
+  SavedOpportunity,
+  Notification
+} = require('../models');
 
 class FeedImporter {
   /**
-   * Import opportunities from file or raw text
+   * Import opportunities from file or raw text using safe streams, buffers,
+   * EventEmitter notifications, and conservative duplicate/update tracking.
    */
   static async importFeed({ feedName, feedType, content, filePath }) {
+    const startTime = Date.now();
+    importEvents.emit('import:started', {
+      feedName,
+      feedType,
+      timestamp: new Date(startTime)
+    });
+
     let rawContent = content;
+    let byteLength = rawContent ? Buffer.byteLength(rawContent, 'utf8') : 0;
+
+    // Use safe stream fixture reader if filePath is provided
     if (!rawContent && filePath) {
-      rawContent = fs.readFileSync(filePath, 'utf8');
+      try {
+        const streamResult = await FixtureReader.readStreamAsync(filePath);
+        rawContent = streamResult.content;
+        byteLength = streamResult.byteLength;
+      } catch (streamErr) {
+        const failedLog = await FeedImport.create({
+          sourceName: feedName,
+          sourceType: feedType || 'unknown',
+          startedAt: new Date(startTime),
+          finishedAt: new Date(),
+          recordsSeen: 0,
+          recordsCreated: 0,
+          recordsUpdated: 0,
+          duplicatesFound: 0,
+          errors: [{ error: streamErr.message, stage: 'file_reading' }],
+          status: 'failed',
+          totalProcessed: 0,
+          itemsIngested: 0,
+          itemsUpdated: 0,
+          duplicatesFlagged: 0,
+          expiredFlagged: 0,
+          invalidSkipped: 0,
+          details: [{ action: 'failed', error: streamErr.message }]
+        });
+
+        importEvents.emit('import:error', {
+          feedName,
+          error: streamErr.message,
+          timestamp: new Date()
+        });
+
+        return {
+          logId: failedLog.id,
+          feedName,
+          feedType,
+          status: 'failed',
+          error: streamErr.message,
+          recordsSeen: 0,
+          recordsCreated: 0,
+          recordsUpdated: 0,
+          duplicatesDetected: 0,
+          durationMs: Date.now() - startTime
+        };
+      }
     }
 
     if (!rawContent) {
-      throw new Error('No feed content or file path provided for ingestion');
+      const emptyErr = 'No feed content or fixture file path provided for ingestion';
+      importEvents.emit('import:error', { feedName, error: emptyErr, timestamp: new Date() });
+      throw new Error(emptyErr);
     }
 
-    const startTime = Date.now();
     let normalizedItems = [];
+    try {
+      if (feedType === 'xml') {
+        normalizedItems = FeedNormalizer.parseXmlFeed(rawContent, feedName);
+      } else {
+        normalizedItems = FeedNormalizer.parseJsonFeed(rawContent, feedName);
+      }
+    } catch (parseErr) {
+      // Record failed parse report gracefully without crashing server
+      const failedLog = await FeedImport.create({
+        sourceName: feedName,
+        sourceType: feedType,
+        startedAt: new Date(startTime),
+        finishedAt: new Date(),
+        recordsSeen: 0,
+        recordsCreated: 0,
+        recordsUpdated: 0,
+        duplicatesFound: 0,
+        errors: [{ error: parseErr.message, stage: 'normalization_parsing' }],
+        status: 'failed',
+        totalProcessed: 0,
+        itemsIngested: 0,
+        itemsUpdated: 0,
+        duplicatesFlagged: 0,
+        expiredFlagged: 0,
+        invalidSkipped: 0,
+        details: [{ action: 'failed', error: parseErr.message }]
+      });
 
-    if (feedType === 'xml') {
-      normalizedItems = FeedNormalizer.parseXmlFeed(rawContent, feedName);
-    } else {
-      normalizedItems = FeedNormalizer.parseJsonFeed(rawContent, feedName);
+      importEvents.emit('import:error', {
+        feedName,
+        error: parseErr.message,
+        timestamp: new Date()
+      });
+
+      return {
+        logId: failedLog.id,
+        feedName,
+        feedType,
+        status: 'failed',
+        error: parseErr.message,
+        recordsSeen: 0,
+        recordsCreated: 0,
+        recordsUpdated: 0,
+        duplicatesDetected: 0,
+        durationMs: Date.now() - startTime
+      };
     }
 
     let itemsIngested = 0;
@@ -31,18 +134,22 @@ class FeedImporter {
     let duplicatesFlagged = 0;
     let expiredFlagged = 0;
     let invalidSkipped = 0;
+    let uncertainDuplicatesFlagged = 0;
     const details = [];
 
-    // Track seen fingerprints within this feed batch
+    // Track seen fingerprints within this import batch
     const batchFingerprints = new Map();
 
     for (const item of normalizedItems) {
       try {
-        // Skip completely invalid items with no title and no URL
+        const recId = item.sourceRecordId || item.externalId;
+        const sName = item.sourceName || item.sourceFeed;
+
+        // Skip completely invalid items with missing title AND missing application URL
         if (item.dataQualityFlags.includes('missing_title') && item.dataQualityFlags.includes('missing_application_url')) {
           invalidSkipped++;
           details.push({
-            externalId: item.sourceRecordId || item.externalId,
+            externalId: recId,
             title: item.title,
             action: 'skipped_invalid',
             reason: 'Missing title and application URL'
@@ -50,17 +157,21 @@ class FeedImporter {
           continue;
         }
 
+        const fp = item.normalizedFingerprint || item.fingerprint;
+
         // Check for batch internal duplicate
         let isBatchDuplicate = false;
-        const fp = item.normalizedFingerprint || item.fingerprint;
         if (batchFingerprints.has(fp)) {
           isBatchDuplicate = true;
           item.isDuplicate = true;
           item.duplicateOfId = batchFingerprints.get(fp);
-          item.dataQualityFlags.push('duplicate_in_same_feed');
+          if (!item.dataQualityFlags.includes('duplicate_in_same_feed')) {
+            item.dataQualityFlags.push('duplicate_in_same_feed');
+          }
+          duplicatesFlagged++;
         }
 
-        // Check if an existing opportunity has the same fingerprint
+        // Conservative duplicate check against database
         const existingByFingerprint = await Opportunity.findOne({
           where: { normalizedFingerprint: fp }
         });
@@ -74,13 +185,40 @@ class FeedImporter {
           duplicatesFlagged++;
         }
 
+        // Similarity signal check for UNCERTAIN / POSSIBLE duplicates
+        // If not an exact match, check if title is highly similar to existing active opportunities
+        if (!existingByFingerprint && !isBatchDuplicate && item.title) {
+          const activeOpportunities = await Opportunity.findAll({
+            where: { status: 'active' },
+            attributes: ['id', 'title', 'organizer', 'startDate']
+          });
+
+          for (const candidate of activeOpportunities) {
+            const similarity = FeedNormalizer.calculateStringSimilarity(item.title, candidate.title);
+            if (similarity >= 0.70 && similarity < 1.0) {
+              // Uncertain match: send to admin review queue rather than destructively merging!
+              item.status = 'flagged';
+              if (!item.dataQualityFlags.includes('uncertain_duplicate_similarity')) {
+                item.dataQualityFlags.push('uncertain_duplicate_similarity');
+              }
+              if (!item.contradictionFlags.includes('uncertain_duplicate_similarity')) {
+                item.contradictionFlags.push('uncertain_duplicate_similarity');
+              }
+              item.uncertainSimilarityScore = Math.round(similarity * 100);
+              item.possibleDuplicateOfId = candidate.id;
+              uncertainDuplicatesFlagged++;
+              break;
+            }
+          }
+        }
+
         if (item.status === 'expired') {
           expiredFlagged++;
         }
 
-        // Find by exact sourceRecordId + sourceName to check if this is an update
-        const recId = item.sourceRecordId || item.externalId;
-        const sName = item.sourceName || item.sourceFeed;
+        // =================================================================
+        // IDEMPOTENCY: Check if record exists by (sourceRecordId + sourceName)
+        // =================================================================
         const existingRecord = await Opportunity.findOne({
           where: {
             sourceRecordId: recId,
@@ -90,16 +228,86 @@ class FeedImporter {
 
         let savedRecord;
         if (existingRecord) {
+          // Detect meaningful changes to record updates for user notifications
+          const changes = [];
+          if (item.deadline && existingRecord.deadline) {
+            const oldTime = new Date(existingRecord.deadline).getTime();
+            const newTime = new Date(item.deadline).getTime();
+            if (oldTime !== newTime) {
+              changes.push({
+                type: 'deadline_extended',
+                message: `Deadline changed from ${new Date(existingRecord.deadline).toLocaleDateString()} to ${new Date(item.deadline).toLocaleDateString()}`,
+                oldValue: existingRecord.deadline,
+                newValue: item.deadline
+              });
+            }
+          }
+
+          if (item.costAmount !== undefined && Number(existingRecord.costAmount) !== Number(item.costAmount)) {
+            changes.push({
+              type: 'cost_updated',
+              message: `Entry cost updated to ${item.currency} ${item.costAmount}`,
+              oldValue: existingRecord.costAmount,
+              newValue: item.costAmount
+            });
+          }
+
+          if (item.format && existingRecord.format !== item.format) {
+            changes.push({
+              type: 'format_changed',
+              message: `Event delivery format changed from ${existingRecord.format} to ${item.format}`,
+              oldValue: existingRecord.format,
+              newValue: item.format
+            });
+          }
+
+          if (item.applicationUrl && existingRecord.applicationUrl !== item.applicationUrl) {
+            changes.push({
+              type: 'details_modified',
+              message: 'Application link or registration portal updated',
+              oldValue: existingRecord.applicationUrl,
+              newValue: item.applicationUrl
+            });
+          }
+
+          // Persist OpportunityUpdate records and notify users who saved this opportunity
+          for (const change of changes) {
+            await OpportunityUpdate.create({
+              opportunityId: existingRecord.id,
+              updateType: change.type,
+              message: change.message,
+              oldValue: { val: change.oldValue },
+              newValue: { val: change.newValue },
+              detectedAt: new Date()
+            });
+
+            // Find all students who saved this opportunity and notify them
+            const savers = await SavedOpportunity.findAll({
+              where: { opportunityId: existingRecord.id }
+            });
+            for (const saver of savers) {
+              await Notification.create({
+                userId: saver.userId,
+                opportunityId: existingRecord.id,
+                type: 'opportunity_update',
+                message: `Update for "${item.title}": ${change.message}`
+              });
+            }
+          }
+
+          // Update existing opportunity record
           await existingRecord.update(item);
           savedRecord = existingRecord;
           itemsUpdated++;
+
           details.push({
             id: savedRecord.id,
             externalId: recId,
             title: item.title,
             action: 'updated',
             flags: item.dataQualityFlags,
-            isDuplicate: item.isDuplicate
+            isDuplicate: item.isDuplicate,
+            changesCount: changes.length
           });
         } else {
           // If slug collision, append unique token
@@ -110,6 +318,7 @@ class FeedImporter {
 
           savedRecord = await Opportunity.create(item);
           itemsIngested++;
+
           details.push({
             id: savedRecord.id,
             externalId: recId,
@@ -147,8 +356,6 @@ class FeedImporter {
       duplicatesFound: duplicatesFlagged,
       errors: details.filter(d => d.action === 'error' || d.action === 'skipped_invalid'),
       status: logStatus,
-
-      // Compatibility fields
       totalProcessed: normalizedItems.length,
       itemsIngested,
       itemsUpdated,
@@ -158,59 +365,71 @@ class FeedImporter {
       details
     });
 
-    return {
+    const report = {
       logId: log.id,
       feedName,
       feedType,
-      totalProcessed: normalizedItems.length,
+      status: logStatus,
+      recordsSeen: normalizedItems.length,
+      recordsCreated: itemsIngested,
+      recordsUpdated: itemsUpdated,
+      duplicatesDetected: duplicatesFlagged,
+      uncertainDuplicatesFlagged,
+      expiredFlagged,
+      invalidSkipped,
+      byteLength,
+      durationMs: Date.now() - startTime,
+      // Backward compatibility aliases
       itemsIngested,
       itemsUpdated,
       duplicatesFlagged,
-      expiredFlagged,
-      invalidSkipped,
-      durationMs: Date.now() - startTime
+      totalProcessed: normalizedItems.length,
+      details
     };
+
+    importEvents.emit('import:completed', {
+      feedName,
+      feedType,
+      report,
+      timestamp: new Date()
+    });
+
+    return report;
   }
 
   /**
-   * Ingest all default sample feeds from disk
+   * Ingest all three default sample feeds (Hackathons JSON, Competitions XML, Workshops JSON)
    */
   static async importAllDefaultFeeds() {
-    const feedDir = path.join(__dirname, '../feeds');
+    const feedDir = path.resolve(__dirname, '../feeds');
     const results = [];
 
-    // 1. Hackathons JSON feed
+    // 1. JSON Feed A: Hackathons
     const hackPath = path.join(feedDir, 'sample-hackathons.json');
-    if (fs.existsSync(hackPath)) {
-      const res = await FeedImporter.importFeed({
-        feedName: 'sample-hackathons-json',
-        feedType: 'json',
-        filePath: hackPath
-      });
-      results.push(res);
-    }
+    const resA = await FeedImporter.importFeed({
+      feedName: 'sample-hackathons-json',
+      feedType: 'json',
+      filePath: hackPath
+    });
+    results.push(resA);
 
-    // 2. Competitions XML feed
+    // 2. XML Feed C: Competitions
     const compPath = path.join(feedDir, 'sample-competitions.xml');
-    if (fs.existsSync(compPath)) {
-      const res = await FeedImporter.importFeed({
-        feedName: 'sample-competitions-xml',
-        feedType: 'xml',
-        filePath: compPath
-      });
-      results.push(res);
-    }
+    const resC = await FeedImporter.importFeed({
+      feedName: 'sample-competitions-xml',
+      feedType: 'xml',
+      filePath: compPath
+    });
+    results.push(resC);
 
-    // 3. Workshops JSON feed
+    // 3. JSON Feed B: Workshops
     const workPath = path.join(feedDir, 'sample-workshops.json');
-    if (fs.existsSync(workPath)) {
-      const res = await FeedImporter.importFeed({
-        feedName: 'sample-workshops-json',
-        feedType: 'json',
-        filePath: workPath
-      });
-      results.push(res);
-    }
+    const resB = await FeedImporter.importFeed({
+      feedName: 'sample-workshops-json',
+      feedType: 'json',
+      filePath: workPath
+    });
+    results.push(resB);
 
     return results;
   }
