@@ -12,7 +12,10 @@ const app = express();
 
 // Configure CORS using exact allowed frontend origins (no wildcards with credentials)
 const parseAllowedOrigins = () => {
-  const envOrigins = (process.env.CLIENT_URL || process.env.CORS_ORIGIN || '')
+  const rawOrigins = [process.env.CLIENT_ORIGIN, process.env.CLIENT_URL, process.env.CORS_ORIGIN]
+    .filter(Boolean)
+    .join(',');
+  const envOrigins = rawOrigins
     .split(',')
     .map(url => url.trim())
     .filter(url => url && url !== '*'); // Disallow wildcard when credentials are true

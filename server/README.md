@@ -318,4 +318,13 @@ npm test
 npx jest tests/feedIngestion.test.js
 ```
 
-Current test status: **10 test suites passed, 110 total tests passed**.
+### Active Test Suites (6)
+1. `tests/feedIngestion.test.js` — XML/JSON parsing, safe parser settings, normalization, fingerprint deduplication.
+2. `tests/recommendation.test.js` — Recommendation scoring, normalized weights, missing profile preferences, explainability.
+3. `tests/eligibility.test.js` — Discrete eligibility rule evaluation, zero-inference guarantee.
+4. `tests/edgeCasesAndSecurity.test.js` — Malformed inputs, token expiry, ownership boundaries, rate limiting, XXE resilience.
+5. `tests/studentWorkflowsE2E.test.js` — End-to-end student journeys (explore, save, reminders, roadmaps, peer collaboration).
+6. `tests/restApi.test.js` — Comprehensive REST API route and controller verification.
+
+Current test status: **6 test suites passed, 127 total tests passed (0 failures)**.
+

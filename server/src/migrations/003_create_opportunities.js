@@ -143,6 +143,10 @@ module.exports = {
         type: Sequelize.JSONB,
         defaultValue: []
       },
+      dataQualityFlags: {
+        type: Sequelize.JSONB,
+        defaultValue: []
+      },
       normalizedFingerprint: {
         type: Sequelize.STRING,
         allowNull: false
