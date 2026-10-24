@@ -2,52 +2,86 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Compass, Bookmark, Calendar, CheckSquare, Users, Sparkles,
-  ArrowRight, ShieldCheck, AlertTriangle, Clock
+  ArrowRight, ShieldCheck, AlertTriangle, Clock, Bell, RefreshCw, CheckCircle2
 } from 'lucide-react';
 import OpportunityCard from '../components/OpportunityCard';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const profile = user?.profile;
 
   const [savedItems, setSavedItems] = useState([]);
   const [roadmaps, setRoadmaps] = useState([]);
   const [timeline, setTimeline] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [peerMatches, setPeerMatches] = useState({ received: [], sent: [] });
   const [loading, setLoading] = useState(true);
+  const [refreshingReminders, setRefreshingReminders] = useState(false);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [savedRes, roadmapsRes, timelineRes, recsRes, notifsRes, peerRes] = await Promise.all([
+        api.getSaved().catch(() => ({ saved: [] })),
+        api.getRoadmaps().catch(() => ({ roadmaps: [] })),
+        api.getTimeline().catch(() => ({ timeline: null })),
+        api.getRecommendations(4).catch(() => api.getOpportunities({ limit: 4, sort: 'relevance' })),
+        api.getNotifications().catch(() => ({ notifications: [], unreadCount: 0 })),
+        api.getMyPeerMatches().catch(() => ({ received: [], sent: [] }))
+      ]);
+
+      setSavedItems(savedRes.saved || []);
+      setRoadmaps(roadmapsRes.roadmaps || []);
+      setTimeline(timelineRes.timeline || null);
+      setRecommendations(recsRes.opportunities || []);
+      setNotifications(notifsRes.notifications || []);
+      setUnreadCount(notifsRes.unreadCount ?? (notifsRes.notifications || []).filter(n => !n.readAt).length);
+      setPeerMatches(peerRes || { received: [], sent: [] });
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadDashboardData() {
-      setLoading(true);
-      try {
-        const [savedRes, roadmapsRes, timelineRes, recsRes, peerRes] = await Promise.all([
-          api.getSaved(),
-          api.getRoadmaps(),
-          api.getTimeline(),
-          api.getRecommendations(4).catch(() => api.getOpportunities({ limit: 4, sort: 'relevance' })),
-          api.getMyPeerMatches().catch(() => ({ received: [], sent: [] }))
-        ]);
-
-        setSavedItems(savedRes.saved || []);
-        setRoadmaps(roadmapsRes.roadmaps || []);
-        setTimeline(timelineRes.timeline || null);
-        setRecommendations(recsRes.opportunities || []);
-        setPeerMatches(peerRes || { received: [], sent: [] });
-      } catch (err) {
-        console.error('Failed to load dashboard data:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadDashboardData();
   }, []);
 
+  const handleRefreshReminders = async () => {
+    setRefreshingReminders(true);
+    try {
+      const res = await api.refreshReminders();
+      setNotifications(res.notifications || []);
+      setUnreadCount(res.unreadCount || 0);
+      addToast('Deadline reminders refreshed.', 'info');
+    } catch (err) {
+      addToast('Failed to refresh reminders', 'error');
+    } finally {
+      setRefreshingReminders(false);
+    }
+  };
+
+  const handleMarkNoticeRead = async (id) => {
+    try {
+      await api.markNotificationRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, readAt: new Date().toISOString() } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      addToast('Notice marked as read', 'info');
+    } catch (err) {
+      addToast('Failed to mark notice read', 'error');
+    }
+  };
+
   const urgentCount = (timeline?.critical?.length || 0) + (timeline?.approaching?.length || 0);
   const activeRoadmap = roadmaps.find(r => r.status === 'active') || roadmaps[0];
+  const unreadNotices = notifications.filter(n => !n.readAt);
 
   return (
     <div className="container" style={{ padding: '2.5rem 1rem 5rem' }}>
@@ -67,17 +101,27 @@ export default function DashboardPage() {
             Student Workspace
           </span>
           <h1 className="font-editorial" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>
-            Welcome back, {profile?.fullName || 'Student'}
+            Welcome back, {user?.name || profile?.fullName || 'Student'}
           </h1>
           <p style={{ color: 'var(--ink-secondary)', fontSize: '0.95rem' }}>
-            {profile?.university ? `${profile.university} • ${profile.major || 'Computer Science'}` : 'OpportunityX Candidate'}
+            {profile?.university ? `${profile.university} • ${profile.major || 'Computer Science'}` : 'OpportunityX Student Profile'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleRefreshReminders}
+            disabled={refreshingReminders}
+            className="btn btn-outline btn-sm"
+            title="Scan saved opportunities and refresh approaching deadline alerts"
+          >
+            <RefreshCw size={13} className={refreshingReminders ? 'animate-spin' : ''} />
+            <span>Check Deadlines</span>
+          </button>
           <Link to="/explore" className="btn btn-primary btn-sm">
             <Compass size={14} />
-            <span>Discover Opportunities</span>
+            <span>Explore Opportunities</span>
           </Link>
           <Link to="/profile" className="btn btn-secondary btn-sm">
             <span>Edit Profile</span>
@@ -85,44 +129,118 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="dashboard-metrics-grid">
-        <div className="metric-card">
-          <div className="metric-label">Tracked Opportunities</div>
-          <div className="metric-value">{savedItems.length}</div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)', marginTop: '0.25rem' }}>
-            Across all pipelines
+      {/* Metrics Row (Actual User Data Only) */}
+      <div className="dashboard-metrics-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '1rem',
+        marginBottom: '2.5rem'
+      }}>
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-tertiary)', textTransform: 'uppercase' }}>
+            Saved Opportunities
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--ink-primary)', margin: '0.25rem 0' }}>
+            {savedItems.length}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--ink-secondary)' }}>
+            Across all pipeline stages
           </div>
         </div>
 
-        <div className="metric-card">
-          <div className="metric-label">Active Roadmaps</div>
-          <div className="metric-value">{roadmaps.filter(r => r.status === 'active').length}</div>
-          <div style={{ fontSize: '0.8rem', color: '#0D9488', fontWeight: 600, marginTop: '0.25rem' }}>
-            Structured preparation
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-tertiary)', textTransform: 'uppercase' }}>
+            Active Roadmaps
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#4F46E5', margin: '0.25rem 0' }}>
+            {roadmaps.filter(r => r.status === 'active').length}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--ink-secondary)' }}>
+            Structured preparation sprints
           </div>
         </div>
 
-        <div className="metric-card">
-          <div className="metric-label">Urgent Deadlines (&lt;7d)</div>
-          <div className="metric-value" style={{ color: urgentCount > 0 ? '#DC2626' : 'inherit' }}>
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-tertiary)', textTransform: 'uppercase' }}>
+            Approaching Deadlines
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: urgentCount > 0 ? '#DC2626' : 'var(--ink-primary)', margin: '0.25rem 0' }}>
             {urgentCount}
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)', marginTop: '0.25rem' }}>
-            Require prompt action
+          <div style={{ fontSize: '0.8rem', color: 'var(--ink-secondary)' }}>
+            Closing in ≤ 7 days
           </div>
         </div>
 
-        <div className="metric-card">
-          <div className="metric-label">Peer Collaboration</div>
-          <div className="metric-value">
-            {profile?.isPublicForMatching ? 'Active' : 'Private'}
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-tertiary)', textTransform: 'uppercase' }}>
+            Unread Update Notices
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)', marginTop: '0.25rem' }}>
-            {peerMatches.received.filter(m => m.status === 'pending').length} pending invites
+          <div style={{ fontSize: '1.75rem', fontWeight: 700, color: unreadCount > 0 ? '#D97706' : 'var(--ink-primary)', margin: '0.25rem 0' }}>
+            {unreadCount}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--ink-secondary)' }}>
+            Changes to tracked opportunities
           </div>
         </div>
       </div>
+
+      {/* Unread Update Notices Section (If any exist) */}
+      {unreadNotices.length > 0 && (
+        <div style={{
+          backgroundColor: 'rgba(217, 119, 6, 0.05)',
+          border: '1px solid rgba(217, 119, 6, 0.25)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Bell size={18} color="#D97706" />
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#92400E', margin: 0 }}>
+                Unread Opportunity Updates ({unreadNotices.length})
+              </h3>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {unreadNotices.slice(0, 3).map(notif => (
+              <div key={notif.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.65rem 0.85rem',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.85rem'
+              }}>
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--ink-primary)' }}>{notif.message}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--ink-tertiary)', marginLeft: '0.5rem' }}>
+                    ({new Date(notif.createdAt).toLocaleDateString()})
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {notif.opportunityId && (
+                    <Link to={`/opportunities/${notif.opportunityId}`} className="btn btn-secondary btn-sm" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>
+                      View Listing
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleMarkNoticeRead(notif.id)}
+                    className="btn btn-outline btn-sm"
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    Mark Read
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main Dashboard Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.7fr', gap: '2rem', marginBottom: '3.5rem' }}>
@@ -191,7 +309,7 @@ export default function DashboardPage() {
             ) : (
               <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--ink-tertiary)' }}>
                 <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
-                  No active preparation roadmaps. Open any opportunity in the catalog and click "Generate Preparation Roadmap" to build an actionable timeline.
+                  No active preparation roadmaps. Open any opportunity in the catalog and click "Generate 4-Phase Roadmap" to build an actionable timeline.
                 </p>
                 <Link to="/explore" className="btn btn-secondary btn-sm">
                   Browse Catalog
@@ -208,7 +326,7 @@ export default function DashboardPage() {
                   Recommended For You
                 </h3>
                 <p style={{ fontSize: '0.825rem', color: 'var(--ink-secondary)' }}>
-                  Scored deterministically using your skills: {(profile?.skills || []).slice(0, 4).join(', ')}
+                  Scored deterministically using your skills: {(profile?.skills || []).slice(0, 4).join(', ') || 'configured preferences'}
                 </p>
               </div>
               <Link to="/explore?sort=relevance" className="btn btn-outline btn-sm">
@@ -225,9 +343,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Deadlines & Peer Invites */}
+        {/* Right Column: Deadlines & Tracker Summary */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* Upcoming Deadline Timeline Box */}
+          {/* Approaching Deadlines Card */}
           <div style={{
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
@@ -235,16 +353,24 @@ export default function DashboardPage() {
             padding: '1.75rem',
             boxShadow: 'var(--shadow-card)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 className="font-editorial" style={{ fontSize: '1.25rem' }}>
-                Upcoming Deadlines
-              </h3>
-              <Link to="/saved" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
-                Tracker
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Clock size={18} color="#D97706" />
+                <h3 className="font-editorial" style={{ fontSize: '1.25rem' }}>
+                  Approaching Deadlines
+                </h3>
+              </div>
+              <Link to="/saved" className="btn btn-outline btn-sm">
+                <span>Pipeline</span>
+                <ArrowRight size={13} />
               </Link>
             </div>
 
-            {urgentCount > 0 ? (
+            {(!timeline || ((timeline.critical?.length || 0) + (timeline.approaching?.length || 0) === 0)) ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--ink-tertiary)' }}>
+                <p style={{ fontSize: '0.85rem' }}>No urgent deadlines within 7 days. Your saved opportunities are on schedule.</p>
+              </div>
+            ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[...(timeline?.critical || []), ...(timeline?.approaching || [])].slice(0, 3).map(item => (
                   <div key={item.savedId} className={`timeline-urgent-card ${item.daysRemaining <= 3 ? 'timeline-critical' : 'timeline-approaching'}`}>
@@ -260,14 +386,10 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--ink-tertiary)', fontSize: '0.85rem' }}>
-                No urgent deadlines in the next 7 days.
-              </div>
             )}
           </div>
 
-          {/* Peer Teammate Requests Card */}
+          {/* Peer Collaboration Summary */}
           <div style={{
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
@@ -276,45 +398,39 @@ export default function DashboardPage() {
             boxShadow: 'var(--shadow-card)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Users size={18} color="#0D9488" />
                 <h3 className="font-editorial" style={{ fontSize: '1.25rem' }}>
                   Peer Collaboration
                 </h3>
               </div>
-              <Link to="/peer-matching" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
-                Manage
+              <Link to="/peers" className="btn btn-outline btn-sm">
+                <span>Peers Hub</span>
+                <ArrowRight size={13} />
               </Link>
             </div>
 
+            <p style={{ fontSize: '0.85rem', color: 'var(--ink-secondary)', marginBottom: '1rem' }}>
+              {profile?.isPublicForMatching || profile?.peerMatchingConsent
+                ? 'Your profile is visible to consented peers preparing for the same opportunities.'
+                : 'Peer matching is private. Opt-in via your profile to connect with teammates.'}
+            </p>
+
             {peerMatches.received.filter(m => m.status === 'pending').length > 0 ? (
-              <div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-secondary)', marginBottom: '0.75rem' }}>
-                  You have <strong>{peerMatches.received.filter(m => m.status === 'pending').length}</strong> pending collaboration invite(s):
-                </p>
-                {peerMatches.received.filter(m => m.status === 'pending').slice(0, 2).map(req => (
-                  <div key={req.id} style={{ padding: '0.75rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', marginBottom: '0.5rem', border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                      {req.requester?.profile?.fullName || 'A student'} invited you
-                    </div>
-                    <div style={{ fontSize: '0.775rem', color: 'var(--ink-tertiary)' }}>
-                      For {req.opportunity?.title}
-                    </div>
-                  </div>
-                ))}
-                <Link to="/peer-matching" className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: '0.5rem' }}>
-                  Review Collaboration Invites
-                </Link>
+              <div style={{ padding: '0.75rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--ink-primary)' }}>
+                  You have {peerMatches.received.filter(m => m.status === 'pending').length} pending collaboration invite(s).
+                </span>
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Link to="/peers" className="btn btn-primary btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
+                    Review Invites
+                  </Link>
+                </div>
               </div>
             ) : (
-              <div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-secondary)', marginBottom: '1rem' }}>
-                  Connect with peers who complement your tech stack for upcoming hackathons and challenges.
-                </p>
-                <Link to="/peer-matching" className="btn btn-outline btn-sm" style={{ width: '100%' }}>
-                  Explore Teammate Matching
-                </Link>
-              </div>
+              <Link to="/peers" className="btn btn-secondary btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
+                Find Teammates
+              </Link>
             )}
           </div>
         </div>

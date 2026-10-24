@@ -11,6 +11,11 @@ const INITIAL_FILTERS = {
   search: '',
   type: '',
   format: 'all',
+  remote: '',
+  beginnerFriendly: '',
+  lowCost: '',
+  sustainabilityFocused: '',
+  location: '',
   cost: 'all',
   experienceLevel: 'all',
   educationLevel: 'all',
@@ -55,6 +60,11 @@ export default function CataloguePage() {
       search: searchParams.get('search') || '',
       type: searchParams.get('type') || '',
       format: searchParams.get('format') || 'all',
+      remote: searchParams.get('remote') || '',
+      beginnerFriendly: searchParams.get('beginnerFriendly') || '',
+      lowCost: searchParams.get('lowCost') || '',
+      sustainabilityFocused: searchParams.get('sustainabilityFocused') || '',
+      location: searchParams.get('location') || '',
       cost: searchParams.get('cost') || 'all',
       experienceLevel: searchParams.get('experienceLevel') || 'all',
       educationLevel: searchParams.get('educationLevel') || 'all',
@@ -75,7 +85,13 @@ export default function CataloguePage() {
   const updateUrlParams = useCallback((currentFilters) => {
     const nextParams = new URLSearchParams();
     Object.entries(currentFilters).forEach(([key, val]) => {
-      if (val && val !== 'all' && !(key === 'status' && val === 'active') && !(key === 'sort' && val === 'deadline') && !(key === 'page' && val === 1)) {
+      if (
+        val &&
+        val !== 'all' &&
+        !(key === 'status' && val === 'active') &&
+        !(key === 'sort' && val === 'deadline') &&
+        !(key === 'page' && val === 1)
+      ) {
         nextParams.set(key, String(val));
       }
     });
@@ -93,6 +109,11 @@ export default function CataloguePage() {
           search: filters.search,
           type: filters.type,
           format: filters.format,
+          remote: filters.remote,
+          beginnerFriendly: filters.beginnerFriendly,
+          lowCost: filters.lowCost,
+          sustainabilityFocused: filters.sustainabilityFocused,
+          location: filters.location,
           cost: filters.cost,
           experienceLevel: filters.experienceLevel,
           educationLevel: filters.educationLevel,
@@ -131,6 +152,11 @@ export default function CataloguePage() {
     filters.search,
     filters.type,
     filters.format,
+    filters.remote,
+    filters.beginnerFriendly,
+    filters.lowCost,
+    filters.sustainabilityFocused,
+    filters.location,
     filters.cost,
     filters.experienceLevel,
     filters.educationLevel,
@@ -161,6 +187,11 @@ export default function CataloguePage() {
     if (filters.search) count++;
     if (filters.type) count++;
     if (filters.format !== 'all') count++;
+    if (filters.remote === 'true') count++;
+    if (filters.beginnerFriendly === 'true') count++;
+    if (filters.lowCost === 'true') count++;
+    if (filters.sustainabilityFocused === 'true') count++;
+    if (filters.location) count++;
     if (filters.cost !== 'all') count++;
     if (filters.experienceLevel !== 'all') count++;
     if (filters.educationLevel !== 'all') count++;

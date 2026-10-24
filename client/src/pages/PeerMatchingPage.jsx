@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Users, ShieldCheck, Mail, Send, Check, X, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
+import { Users, ShieldCheck, Mail, Send, Check, X, Sparkles, AlertCircle, ArrowRight, Lock, ShieldAlert, Award } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
@@ -16,6 +16,7 @@ export default function PeerMatchingPage() {
   const [peerMatches, setPeerMatches] = useState({ received: [], sent: [] });
   const [consentRequired, setConsentRequired] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [withdrawingConsent, setWithdrawingConsent] = useState(false);
 
   // Invite modal state
   const [selectedPeer, setSelectedPeer] = useState(null);
@@ -25,6 +26,8 @@ export default function PeerMatchingPage() {
 
   // Active tab
   const [activeTab, setActiveTab] = useState('discover'); // 'discover', 'received', 'sent'
+
+  const hasConsent = Boolean(user?.profile?.isPublicForMatching || user?.profile?.peerMatchingConsent);
 
   // Load saved opportunities to select from
   useEffect(() => {
@@ -77,16 +80,41 @@ export default function PeerMatchingPage() {
     }
 
     loadPeers();
-  }, [selectedOppId, user?.profile?.isPublicForMatching]);
+  }, [selectedOppId, hasConsent]);
 
   const handleEnableConsent = async () => {
     try {
-      await api.updateProfile({ isPublicForMatching: true });
+      await api.updatePeerConsent(true);
       await refreshUser();
       setConsentRequired(false);
-      addToast('Peer collaboration consent enabled! You are now discoverable.', 'success');
+      addToast('Peer collaboration consent enabled! You are now discoverable to peers.', 'success');
+      if (selectedOppId) {
+        setLoading(true);
+        const data = await api.getOpportunityPeers(selectedOppId);
+        setPeers(data.peers || []);
+        setLoading(false);
+      }
     } catch (err) {
-      addToast('Failed to update consent settings', 'error');
+      addToast(err.message || 'Failed to update consent settings', 'error');
+    }
+  };
+
+  const handleWithdrawConsent = async () => {
+    if (!window.confirm('Withdraw collaboration consent? Your profile will be hidden from peer discovery and pending matching requests will be cancelled.')) {
+      return;
+    }
+    setWithdrawingConsent(true);
+    try {
+      await api.withdrawPeerConsent();
+      await refreshUser();
+      setConsentRequired(true);
+      setPeers([]);
+      addToast('Peer collaboration consent withdrawn. Your profile is now private.', 'info');
+      loadMatches();
+    } catch (err) {
+      addToast(err.message || 'Failed to withdraw consent', 'error');
+    } finally {
+      setWithdrawingConsent(false);
     }
   };
 
@@ -121,7 +149,7 @@ export default function PeerMatchingPage() {
   const handleRespondMatch = async (matchId, action) => {
     try {
       await api.respondPeerRequest(matchId, { action, contactDetail: user.email });
-      addToast(action === 'accepted' ? 'Collaboration invite accepted! Contact shared.' : 'Invite declined.', 'info');
+      addToast(action === 'accepted' ? 'Collaboration invite accepted! Contact details shared.' : 'Invite declined.', 'info');
       loadMatches();
       if (selectedOppId) {
         const updatedPeers = await api.getOpportunityPeers(selectedOppId);
@@ -146,32 +174,60 @@ export default function PeerMatchingPage() {
         borderBottom: '1px solid var(--border-subtle)'
       }}>
         <div>
-          <span className="badge badge-verified" style={{ marginBottom: '0.4rem' }}>
-            Privacy-Preserving Matching
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+            <span className="badge badge-verified">
+              Privacy-Preserving Matching
+            </span>
+            {hasConsent && !consentRequired ? (
+              <span className="badge badge-accent">
+                <ShieldCheck size={12} style={{ display: 'inline', marginRight: '3px' }} />
+                Consent Active
+              </span>
+            ) : (
+              <span className="badge badge-neutral">
+                <Lock size={12} style={{ display: 'inline', marginRight: '3px' }} />
+                Opt-in Required
+              </span>
+            )}
+          </div>
           <h1 className="font-editorial" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>
             Consent-Based Peer Matching
           </h1>
           <p style={{ color: 'var(--ink-secondary)', fontSize: '0.95rem' }}>
-            Connect with verified student peers who saved the same opportunity and match your complementary tech stack.
+            Connect with verified student peers who saved the same opportunity. Contact info remains locked until both sides agree to collaborate.
           </p>
         </div>
 
-        <Link to="/profile" className="btn btn-outline btn-sm">
-          <span>Privacy Settings</span>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {hasConsent && !consentRequired && (
+            <button
+              type="button"
+              onClick={handleWithdrawConsent}
+              disabled={withdrawingConsent}
+              className="btn btn-outline btn-sm"
+              style={{ color: '#E11D48', borderColor: '#FECDD3' }}
+              title="Stop appearing in peer candidate lists"
+            >
+              <ShieldAlert size={14} />
+              <span>{withdrawingConsent ? 'Withdrawing...' : 'Withdraw Consent'}</span>
+            </button>
+          )}
+          <Link to="/profile" className="btn btn-outline btn-sm">
+            <span>Profile &amp; Skills</span>
+          </Link>
+        </div>
       </div>
 
       {/* Explicit Consent Callout (if disabled) */}
-      {(!user?.profile?.isPublicForMatching || consentRequired) && (
-        <div className="consent-callout-card">
+      {(!hasConsent || consentRequired) && (
+        <div className="consent-callout-card" style={{ marginBottom: '2rem' }}>
           <ShieldCheck size={28} color="#4F46E5" style={{ flexShrink: 0, marginTop: '2px' }} />
           <div style={{ flex: 1 }}>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--ink-primary)', marginBottom: '0.35rem' }}>
               Peer Matching Requires Your Explicit Consent
             </h3>
             <p style={{ fontSize: '0.875rem', color: 'var(--ink-secondary)', lineHeight: 1.6, marginBottom: '1rem' }}>
-              To protect student privacy, OpportunityX never shares your profile with others unless you explicitly opt in. By enabling matching, other students who saved the same opportunities can discover your technical skills and invite you to collaborate.
+              To protect student privacy, OpportunityX never displays your profile to others unless you explicitly opt in. When enabled, only fellow students who also saved the same opportunity can discover your technical skills and send collaboration invites. Email addresses are kept hidden until an invite is accepted.
             </p>
             <button
               type="button"
@@ -288,15 +344,23 @@ export default function PeerMatchingPage() {
             <div className="grid-cards">
               {peers.map(peer => (
                 <div key={peer.userId} className="peer-card">
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                     <div className="peer-avatar">
                       {peer.fullName.charAt(0)}
                     </div>
-                    {peer.matchStatus === 'accepted' ? (
-                      <span className="badge badge-verified">Connected</span>
-                    ) : peer.matchStatus === 'pending' ? (
-                      <span className="badge badge-demo">Invite Pending</span>
-                    ) : null}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
+                      {peer.compatibilityScore ? (
+                        <span className="badge badge-accent" style={{ fontWeight: 700 }}>
+                          <Award size={11} style={{ marginRight: '3px', display: 'inline' }} />
+                          {peer.compatibilityScore}% Compatibility
+                        </span>
+                      ) : null}
+                      {peer.matchStatus === 'accepted' ? (
+                        <span className="badge badge-verified">Connected</span>
+                      ) : peer.matchStatus === 'pending' ? (
+                        <span className="badge badge-demo">Invite Pending</span>
+                      ) : null}
+                    </div>
                   </div>
 
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.2rem' }}>
@@ -304,7 +368,23 @@ export default function PeerMatchingPage() {
                   </h3>
                   <div style={{ fontSize: '0.825rem', color: 'var(--ink-tertiary)', marginBottom: '0.85rem' }}>
                     {peer.university} • {peer.major || peer.educationLevel}
+                    {peer.availability ? ` • ${peer.availability}` : ''}
                   </div>
+
+                  {peer.compatibilityExplanation && (
+                    <div style={{
+                      fontSize: '0.8rem',
+                      color: 'var(--ink-secondary)',
+                      backgroundColor: 'var(--bg-subtle)',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      marginBottom: '0.85rem',
+                      borderLeft: '3px solid var(--accent-primary)',
+                      lineHeight: 1.4
+                    }}>
+                      {peer.compatibilityExplanation}
+                    </div>
+                  )}
 
                   <p style={{ fontSize: '0.875rem', color: 'var(--ink-secondary)', lineHeight: 1.5, marginBottom: '1.25rem', flex: 1 }}>
                     "{peer.matchingBio || 'Looking for teammates with complementary developer or design backgrounds.'}"
@@ -326,6 +406,22 @@ export default function PeerMatchingPage() {
                     </div>
                   )}
 
+                  {/* Shared Interests */}
+                  {peer.sharedInterests && peer.sharedInterests.length > 0 && (
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <span style={{ fontSize: '0.725rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-primary)', display: 'block', marginBottom: '0.25rem' }}>
+                        Shared Interests
+                      </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                        {peer.sharedInterests.map(i => (
+                          <span key={i} className="skill-pill" style={{ backgroundColor: 'var(--accent-glow)', color: 'var(--accent-primary)', borderColor: 'transparent' }}>
+                            ★ {i}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Complementary Skills */}
                   {peer.complementarySkills && peer.complementarySkills.length > 0 && (
                     <div style={{ marginBottom: '1.25rem' }}>
@@ -339,6 +435,21 @@ export default function PeerMatchingPage() {
                           </span>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Privacy state note */}
+                  {peer.matchStatus !== 'accepted' && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.75rem',
+                      color: 'var(--ink-tertiary)',
+                      marginBottom: '0.85rem'
+                    }}>
+                      <Lock size={12} />
+                      <span>Email hidden until invite is accepted</span>
                     </div>
                   )}
 

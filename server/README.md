@@ -174,26 +174,56 @@ Rate-limited to 30 requests per 15-minute sliding window per IP.
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
 | `GET` | `/api/recommendations` | Optional Auth | Top matched opportunities tailored to student |
-| `POST` | `/api/opportunities/:id/roadmap` | Protected | Generate 4-phase preparation roadmap for opportunity |
+| `POST` | `/api/opportunities/:id/roadmap` | Protected | Generate structured preparation roadmap for opportunity |
+| `POST` | `/api/roadmaps/generate` | Protected | Generate 8-stage preparation roadmap with explicit requirement milestones |
 | `GET` | `/api/roadmaps` | Protected | List all roadmaps owned by current user |
-| `PATCH` | `/api/roadmaps/:id/tasks/:taskId` | Protected | Update task completion & recalculate readiness % |
+| `GET` | `/api/roadmaps/:id` | Protected | Retrieve specific roadmap with all milestone tasks |
+| `PATCH` | `/api/roadmaps/:id/tasks/:taskId` | Protected | Toggle task completion and recalculate readiness % |
+| `DELETE` | `/api/roadmaps/:id` | Protected | Delete roadmap owned by user |
+
+**Roadmap Preparation Stages**:
+Generated roadmaps consist of 8 tailored sequential milestones:
+1. Eligibility Verification & Requirement Review (inspects explicit criteria before committing effort)
+2. Team Formation & Scope Definition (matches team constraints and problem statement)
+3. Skill Preparation & Toolchain Setup (addresses skill runway and developer environment)
+4. Milestone Planning & Solution Architecture (schedules deliverables and architecture)
+5. Core Implementation & Prototype Testing (builds MVP and validates functionality)
+6. Application Preparation & Documentation (gathers pitch, demo links, and deliverables)
+7. Pre-Submission Checklist & Final Polish (verifies rubrics, assets, and licenses)
+8. Deadline Buffer & Submission Checkpoint (establishes a 24-hour pre-deadline safety buffer)
 
 ---
 
-#### 5. Notifications
+#### 5. Notifications & In-App Deadline Reminders
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| `GET` | `/api/notifications` | Protected | List notifications for authenticated user |
+| `GET` | `/api/notifications` | Protected | List notifications and auto-evaluate approaching deadlines |
+| `POST` | `/api/notifications/refresh-reminders` | Protected | Explicitly trigger deadline evaluation for saved listings |
 | `PATCH` | `/api/notifications/:id/read` | Protected | Mark notification as read (ownership enforced) |
+
+**In-App Deadline Reminder Behavior**:
+- **Evaluation Window**: Opportunities tracked in the student's saved list with application deadlines occurring within 7 days are identified.
+- **Deduplication**: Reminders are generated with a 24-hour deduplication threshold to prevent notification noise.
+- **Evaluation Triggers**: Reminders are refreshed during notification retrieval (`GET /api/notifications`) and on demand via `POST /api/notifications/refresh-reminders`.
+- **Delivery Scope**: All deadline reminders and change notices are delivered exclusively via the in-app notification center and student dashboard. OpportunityX does not claim external email, SMS, or browser push delivery.
 
 ---
 
-#### 6. Peer Matching
+#### 6. Peer Matching & Privacy Protections
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
 | `GET` | `/api/peers/matches?opportunityId=` | Protected | Discover consented peers interested in opportunity |
+| `GET` | `/api/peers/requests` | Protected | List incoming and outgoing collaboration invites |
 | `POST` | `/api/peers/requests` | Protected | Send collaboration invite to another consented peer |
 | `PATCH` | `/api/peers/requests/:id` | Protected | Accept or decline invite (recipient ownership enforced) |
+| `POST` | `/api/peers/consent` | Protected | Update peer collaboration consent setting |
+| `DELETE` | `/api/peers/consent` | Protected | Withdraw consent, hide profile, and auto-decline pending invites |
+
+**Privacy Guarantees**:
+- **Strict Opt-In**: Students appear in peer candidate queries only after explicitly granting collaboration consent (`peerMatchingConsent: true` or `isPublicForMatching: true`).
+- **Contact Redaction**: Candidate discovery responses redact user email addresses and personal contact details at the database query level.
+- **Mutual Disclosure**: Contact details are shared only after an invite is explicitly accepted by the recipient.
+- **Consent Withdrawal**: Withdrawing consent immediately hides the user from candidate pools and marks unresolved collaboration invites as declined.
 
 ---
 

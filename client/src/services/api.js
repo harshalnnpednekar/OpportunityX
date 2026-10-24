@@ -93,6 +93,7 @@ export const api = {
 
   // Notifications
   getNotifications: () => request('/notifications'),
+  refreshReminders: () => request('/notifications/refresh-reminders', { method: 'POST' }),
   markNotificationRead: (id) => request(`/notifications/${id}/read`, { method: 'PATCH' }),
 
   // Peer Matching
@@ -101,6 +102,8 @@ export const api = {
   respondPeerRequest: (id, payload) => request(`/peers/requests/${id}`, { method: 'PATCH', body: payload }),
   getOpportunityPeers: (opportunityId) => request(`/peers/matches?opportunityId=${opportunityId}`),
   getMyPeerMatches: () => request('/peers/requests'),
+  updatePeerConsent: (consent) => request('/peers/consent', { method: 'POST', body: { consent } }),
+  withdrawPeerConsent: () => request('/peers/consent', { method: 'DELETE' }),
 
   // Admin Tools
   getAdminHealth: () => request('/admin/health'),

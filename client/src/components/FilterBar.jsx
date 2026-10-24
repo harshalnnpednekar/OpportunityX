@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, RotateCcw } from 'lucide-react';
+import { Search, RotateCcw, MapPin, Check } from 'lucide-react';
 import useDebouncedValue from '../hooks/useDebouncedValue';
 
 const CATEGORIES = [
@@ -13,7 +13,9 @@ const CATEGORIES = [
 
 export default function FilterBar({ filters, onFilterChange, onReset }) {
   const [searchInput, setSearchInput] = useState(filters.search || '');
+  const [locationInput, setLocationInput] = useState(filters.location || '');
   const debouncedSearch = useDebouncedValue(searchInput, 350);
+  const debouncedLocation = useDebouncedValue(locationInput, 350);
 
   // Sync debounced search to parent filter state
   useEffect(() => {
@@ -22,12 +24,22 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
     }
   }, [debouncedSearch]);
 
-  // Sync incoming filters.search changes (e.g., reset button)
+  // Sync debounced location to parent filter state
+  useEffect(() => {
+    if (debouncedLocation !== (filters.location || '')) {
+      onFilterChange('location', debouncedLocation);
+    }
+  }, [debouncedLocation]);
+
+  // Sync incoming filters changes (e.g. reset button)
   useEffect(() => {
     if (filters.search !== searchInput && (filters.search === '' || filters.search !== debouncedSearch)) {
       setSearchInput(filters.search || '');
     }
-  }, [filters.search]);
+    if (filters.location !== locationInput && (filters.location === '' || filters.location !== debouncedLocation)) {
+      setLocationInput(filters.location || '');
+    }
+  }, [filters.search, filters.location]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -38,9 +50,19 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
     onFilterChange('type', catId === 'all' ? '' : catId);
   };
 
+  const toggleBooleanFilter = (key) => {
+    const current = filters[key] === 'true' || filters[key] === true;
+    onFilterChange(key, current ? '' : 'true');
+  };
+
   const hasActiveFilters = Boolean(
     filters.search ||
     filters.type ||
+    filters.location ||
+    filters.remote === 'true' ||
+    filters.beginnerFriendly === 'true' ||
+    filters.lowCost === 'true' ||
+    filters.sustainabilityFocused === 'true' ||
     (filters.format && filters.format !== 'all') ||
     (filters.cost && filters.cost !== 'all') ||
     (filters.experienceLevel && filters.experienceLevel !== 'all') ||
@@ -50,17 +72,31 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
 
   return (
     <div className="filter-container" role="search" aria-label="Opportunity filters">
-      {/* Primary Search Bar with Debounce */}
-      <form onSubmit={handleSearchSubmit} className="search-input-wrapper">
-        <Search size={18} className="search-icon" aria-hidden="true" />
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search by keyword, tool (e.g. PyTorch, Rust, ROS), topic (e.g. Climate, AI), or organizer..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          aria-label="Search opportunities"
-        />
+      {/* Primary Search & Location Bar */}
+      <form onSubmit={handleSearchSubmit} className="search-input-wrapper" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+        <div style={{ position: 'relative' }}>
+          <Search size={18} className="search-icon" aria-hidden="true" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search keyword, stack (Python, React), theme (AI, Climate), or organizer..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            aria-label="Search opportunities"
+          />
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <MapPin size={18} className="search-icon" aria-hidden="true" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Filter location (e.g. Remote, Boston, London)..."
+            value={locationInput}
+            onChange={(e) => setLocationInput(e.target.value)}
+            aria-label="Filter by location"
+          />
+        </div>
       </form>
 
       {/* Primary Category Quick-Pills */}
@@ -78,6 +114,45 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
             </button>
           );
         })}
+      </div>
+
+      {/* Quick Attribute Toggles (Remote, Beginner, Low-Cost, Sustainability) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-subtle)' }}>
+        <button
+          type="button"
+          className={`filter-pill-btn ${filters.remote === 'true' ? 'active' : ''}`}
+          onClick={() => toggleBooleanFilter('remote')}
+          style={{ fontSize: '0.8rem', padding: '0.3rem 0.65rem' }}
+        >
+          {filters.remote === 'true' ? '✓ ' : ''}🌐 Remote / Virtual
+        </button>
+
+        <button
+          type="button"
+          className={`filter-pill-btn ${filters.beginnerFriendly === 'true' ? 'active' : ''}`}
+          onClick={() => toggleBooleanFilter('beginnerFriendly')}
+          style={{ fontSize: '0.8rem', padding: '0.3rem 0.65rem' }}
+        >
+          {filters.beginnerFriendly === 'true' ? '✓ ' : ''}🌱 Beginner Friendly
+        </button>
+
+        <button
+          type="button"
+          className={`filter-pill-btn ${filters.lowCost === 'true' ? 'active' : ''}`}
+          onClick={() => toggleBooleanFilter('lowCost')}
+          style={{ fontSize: '0.8rem', padding: '0.3rem 0.65rem' }}
+        >
+          {filters.lowCost === 'true' ? '✓ ' : ''}💵 Free / Low Cost (≤$25)
+        </button>
+
+        <button
+          type="button"
+          className={`filter-pill-btn ${filters.sustainabilityFocused === 'true' ? 'active' : ''}`}
+          onClick={() => toggleBooleanFilter('sustainabilityFocused')}
+          style={{ fontSize: '0.8rem', padding: '0.3rem 0.65rem' }}
+        >
+          {filters.sustainabilityFocused === 'true' ? '✓ ' : ''}🌿 Sustainability Focused
+        </button>
       </div>
 
       {/* Secondary Multi-Select Filters Row */}
@@ -103,7 +178,7 @@ export default function FilterBar({ filters, onFilterChange, onReset }) {
             style={{ width: 'auto', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
             value={filters.cost || 'all'}
             onChange={(e) => onFilterChange('cost', e.target.value)}
-            aria-label="Filter by cost"
+            aria-label="Filter by cost tier"
           >
             <option value="all">Cost: All Tiers</option>
             <option value="free">Free Application &amp; Entry</option>

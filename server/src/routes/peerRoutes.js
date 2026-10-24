@@ -22,4 +22,8 @@ router.patch('/requests/:id', validatePeerRequestResponse, peerMatchController.r
 // GET /api/peers/requests (get all sent and received requests)
 router.get('/requests', peerMatchController.getMyPeerMatches);
 
+// POST & DELETE /api/peers/consent (manage or withdraw matching consent)
+router.post('/consent', peerMatchController.updatePeerConsent);
+router.delete('/consent', peerMatchController.updatePeerConsent);
+
 module.exports = router;

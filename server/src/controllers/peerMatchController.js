@@ -1,4 +1,4 @@
-const { MatchRequest, PeerMatch, User, StudentProfile, Profile, SavedOpportunity, Opportunity } = require('../models');
+const { MatchRequest, User, StudentProfile, SavedOpportunity, Opportunity } = require('../models');
 const { Op } = require('sequelize');
 
 /**
@@ -58,7 +58,7 @@ const getPeerMatches = async (req, res, next) => {
       include: [{
         model: User,
         as: 'user',
-        attributes: ['id', 'name', 'email']
+        attributes: ['id', 'name'] // Do not expose email in public candidate pool
       }]
     });
 
@@ -85,12 +85,40 @@ const getPeerMatches = async (req, res, next) => {
     });
 
     const mySkills = (currentProfile.skills || []).map(s => String(s).toLowerCase());
+    const myInterests = (currentProfile.interests || []).map(i => String(i).toLowerCase());
 
     const peers = publicProfiles.map(p => {
       const peerSkills = (p.skills || []).map(s => String(s));
-      const shared = peerSkills.filter(s => mySkills.includes(s.toLowerCase()));
-      const complementary = peerSkills.filter(s => !mySkills.includes(s.toLowerCase()));
+      const peerInterests = (p.interests || []).map(i => String(i));
+      const sharedSkills = peerSkills.filter(s => mySkills.includes(s.toLowerCase()));
+      const complementarySkills = peerSkills.filter(s => !mySkills.includes(s.toLowerCase()));
+      const sharedInterests = peerInterests.filter(i => myInterests.includes(i.toLowerCase()));
       const matchMeta = matchStatusMap.get(p.userId) || { status: 'none' };
+
+      // Calculate compatibility score (0 to 100)
+      let score = 50; // baseline
+      if (sharedSkills.length > 0) score += Math.min(25, sharedSkills.length * 10);
+      if (complementarySkills.length > 0) score += Math.min(15, complementarySkills.length * 5);
+      if (sharedInterests.length > 0) score += Math.min(10, sharedInterests.length * 5);
+      if (p.availability && currentProfile.availability && p.availability === currentProfile.availability) score += 5;
+      score = Math.min(100, score);
+
+      // Generate clear compatibility explanation
+      let explanationParts = [];
+      if (sharedSkills.length > 0) {
+        explanationParts.push(`${sharedSkills.length} shared skill${sharedSkills.length > 1 ? 's' : ''} (${sharedSkills.slice(0, 2).join(', ')})`);
+      }
+      if (complementarySkills.length > 0) {
+        explanationParts.push(`${complementarySkills.length} complementary toolkit${complementarySkills.length > 1 ? 's' : ''} (${complementarySkills.slice(0, 2).join(', ')})`);
+      }
+      if (sharedInterests.length > 0) {
+        explanationParts.push(`shared interest in ${sharedInterests.slice(0, 2).join(' & ')}`);
+      }
+      if (explanationParts.length === 0) {
+        explanationParts.push('mutual interest in this opportunity');
+      }
+
+      const compatibilityExplanation = `Compatibility: ${explanationParts.join('; ')}.`;
 
       return {
         userId: p.userId,
@@ -99,14 +127,19 @@ const getPeerMatches = async (req, res, next) => {
         educationLevel: p.educationLevel,
         university: p.university,
         major: p.major,
+        availability: p.availability,
         matchingBio: p.matchingBio || p.bio,
         skills: peerSkills,
-        sharedSkills: shared,
-        complementarySkills: complementary,
+        sharedSkills,
+        complementarySkills,
+        sharedInterests,
+        compatibilityScore: score,
+        compatibilityExplanation,
         matchStatus: matchMeta.status,
         matchId: matchMeta.matchId || null,
         isRequester: matchMeta.isRequester || false,
-        contactDetail: matchMeta.contactDetail || null
+        // Email/contact details ONLY exposed if mutually accepted
+        contactDetail: matchMeta.status === 'accepted' ? matchMeta.contactDetail : null
       };
     });
 
@@ -247,10 +280,11 @@ const respondToPeerRequest = async (req, res, next) => {
 
 /**
  * Get all peer requests (received and sent)
+ * Strictly redacts private email addresses unless the request is accepted.
  */
 const getMyPeerMatches = async (req, res, next) => {
   try {
-    const received = await MatchRequest.findAll({
+    const rawReceived = await MatchRequest.findAll({
       where: { recipientId: req.user.id },
       include: [
         { model: Opportunity, as: 'opportunity' },
@@ -264,7 +298,7 @@ const getMyPeerMatches = async (req, res, next) => {
       order: [['createdAt', 'DESC']]
     });
 
-    const sent = await MatchRequest.findAll({
+    const rawSent = await MatchRequest.findAll({
       where: { requesterId: req.user.id },
       include: [
         { model: Opportunity, as: 'opportunity' },
@@ -278,9 +312,61 @@ const getMyPeerMatches = async (req, res, next) => {
       order: [['createdAt', 'DESC']]
     });
 
+    // Redact email unless mutually accepted
+    const received = rawReceived.map(r => {
+      const plain = r.toJSON();
+      if (plain.status !== 'accepted') {
+        if (plain.requester) delete plain.requester.email;
+        delete plain.contactDetail;
+      }
+      return plain;
+    });
+
+    const sent = rawSent.map(s => {
+      const plain = s.toJSON();
+      if (plain.status !== 'accepted') {
+        if (plain.recipient) delete plain.recipient.email;
+        delete plain.contactDetail;
+      }
+      return plain;
+    });
+
     res.json({
       received,
       sent
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Update or withdraw peer collaboration consent
+ * (POST /api/peers/consent, DELETE /api/peers/consent)
+ */
+const updatePeerConsent = async (req, res, next) => {
+  try {
+    const consent = req.method === 'DELETE' ? false : Boolean(req.body.consent ?? req.body.peerMatchingConsent ?? req.body.isPublicForMatching);
+
+    let profile = await StudentProfile.findOne({ where: { userId: req.user.id } });
+    if (profile) {
+      await profile.update({
+        peerMatchingConsent: consent,
+        isPublicForMatching: consent
+      });
+    }
+
+    // If withdrawing consent, decline any pending incoming invites
+    if (!consent) {
+      await MatchRequest.update(
+        { status: 'declined' },
+        { where: { recipientId: req.user.id, status: 'pending' } }
+      );
+    }
+
+    res.json({
+      message: consent ? 'Peer matching consent enabled.' : 'Peer matching consent withdrawn.',
+      peerMatchingConsent: consent
     });
   } catch (err) {
     next(err);
@@ -292,5 +378,6 @@ module.exports = {
   getOpportunityPeers: getPeerMatches,
   sendPeerRequest,
   respondToPeerRequest,
-  getMyPeerMatches
+  getMyPeerMatches,
+  updatePeerConsent
 };

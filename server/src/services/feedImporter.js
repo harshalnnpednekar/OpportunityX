@@ -270,6 +270,15 @@ class FeedImporter {
             });
           }
 
+          if (item.eligibilityText && existingRecord.eligibilityText !== item.eligibilityText) {
+            changes.push({
+              type: 'eligibility_modified',
+              message: 'Eligibility criteria or participation requirements updated',
+              oldValue: existingRecord.eligibilityText,
+              newValue: item.eligibilityText
+            });
+          }
+
           // Persist OpportunityUpdate records and notify users who saved this opportunity
           for (const change of changes) {
             await OpportunityUpdate.create({
