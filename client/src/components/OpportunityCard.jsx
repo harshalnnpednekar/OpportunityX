@@ -101,15 +101,24 @@ export default function OpportunityCard({ opportunity, onSavedChange }) {
       {/* Match & Eligibility Row */}
       <div className="card-scoring-row">
         <MatchScoreBadge
-          score={opportunity.matchScore || 50}
+          score={opportunity.matchScore || opportunity.score || 50}
           matchLevel={opportunity.matchLevel}
+          formula={opportunity.formula}
+          explanation={opportunity.explanation}
           reasons={opportunity.matchReasons}
           matchedSkills={opportunity.matchedSkills}
+          skillGaps={opportunity.skillGaps}
+          preparationActions={opportunity.preparationActions}
+          matchedInterests={opportunity.matchedInterests}
+          relevantPreferences={opportunity.relevantPreferences}
+          missingProfileInformation={opportunity.missingProfileInformation}
+          missingDataEffect={opportunity.missingDataEffect}
+          componentScores={opportunity.componentScores}
         />
         <EligibilityBadge
-          status={opportunity.eligibilityStatus || 'CONDITIONAL'}
-          summary={opportunity.eligibilitySummary}
-          checks={opportunity.eligibilityChecks}
+          status={opportunity.eligibilityStatus || opportunity.eligibility?.status || 'unknown'}
+          summary={opportunity.eligibilitySummary || opportunity.eligibility?.summary}
+          checks={opportunity.eligibilityChecks || opportunity.eligibility?.checks}
         />
       </div>
 

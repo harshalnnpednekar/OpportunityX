@@ -174,15 +174,24 @@ export default function OpportunityDetailPage() {
               border: '1px solid var(--border-subtle)'
             }}>
               <MatchScoreBadge
-                score={opp.matchScore || 50}
+                score={opp.matchScore || opp.score || 50}
                 matchLevel={opp.matchLevel}
+                formula={opp.formula}
+                explanation={opp.explanation}
                 reasons={opp.matchReasons}
                 matchedSkills={opp.matchedSkills}
+                skillGaps={opp.skillGaps}
+                preparationActions={opp.preparationActions}
+                matchedInterests={opp.matchedInterests}
+                relevantPreferences={opp.relevantPreferences}
+                missingProfileInformation={opp.missingProfileInformation}
+                missingDataEffect={opp.missingDataEffect}
+                componentScores={opp.componentScores}
               />
               <EligibilityBadge
-                status={opp.eligibilityStatus || 'CONDITIONAL'}
-                summary={opp.eligibilitySummary}
-                checks={opp.eligibilityChecks}
+                status={opp.eligibilityStatus || opp.eligibility?.status || 'unknown'}
+                summary={opp.eligibilitySummary || opp.eligibility?.summary}
+                checks={opp.eligibilityChecks || opp.eligibility?.checks}
               />
               <div style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--ink-tertiary)' }}>
                 {daysLeft !== null && (
@@ -367,6 +376,39 @@ export default function OpportunityDetailPage() {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Trust & Data Quality Signal Box */}
+          <div className="detail-meta-box">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+              <span className="badge badge-neutral">Data Quality Audit</span>
+              <strong style={{ color: (opp.trustSignal?.trustScore || opp.trustScore || 100) >= 80 ? '#0D9488' : '#D97706', fontSize: '1.05rem' }}>
+                {opp.trustSignal?.trustScore || opp.trustScore || 100}% Quality
+              </strong>
+            </div>
+
+            <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.35rem', color: 'var(--ink-primary)' }}>
+              {opp.trustSignal?.tier || 'High Quality & Fresh'}
+            </div>
+
+            <ul style={{ paddingLeft: '1.1rem', fontSize: '0.8rem', color: 'var(--ink-secondary)', marginBottom: '0.85rem' }}>
+              {(opp.trustSignal?.factors || []).map((f, i) => (
+                <li key={i} style={{ marginBottom: '0.2rem' }}>
+                  {f.detail || f.factor}
+                </li>
+              ))}
+            </ul>
+
+            <div style={{
+              fontSize: '0.75rem',
+              color: 'var(--ink-tertiary)',
+              padding: '0.5rem',
+              backgroundColor: 'var(--bg-surface-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              lineHeight: 1.4
+            }}>
+              {opp.trustSignal?.disclaimer || 'INTERNAL DATA-QUALITY INDICATOR: This score reflects internal metadata completeness, automated consistency audits, and freshness. It is not an external guarantee or warranty that an opportunity is legitimate.'}
             </div>
           </div>
 

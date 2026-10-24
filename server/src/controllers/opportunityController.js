@@ -2,6 +2,7 @@ const { Opportunity, SavedOpportunity, Roadmap, RoadmapTask } = require('../mode
 const { Op } = require('sequelize');
 const RecommendationEngine = require('../services/recommendationEngine');
 const EligibilityEngine = require('../services/eligibilityEngine');
+const TrustSignalEngine = require('../services/trustSignalEngine');
 const RoadmapGenerator = require('../services/roadmapGenerator');
 
 /**
@@ -284,6 +285,7 @@ const getOpportunityDetail = async (req, res, next) => {
     const studentProfile = req.user?.profile || null;
     const rec = RecommendationEngine.calculateMatch(studentProfile, oppJson);
     const elig = EligibilityEngine.evaluateEligibility(studentProfile, oppJson);
+    const trust = TrustSignalEngine.evaluateTrustSignal(oppJson);
 
     let isSaved = false;
     let savedStatus = null;
@@ -316,12 +318,26 @@ const getOpportunityDetail = async (req, res, next) => {
         ...oppJson,
         matchScore: rec.score,
         matchLevel: rec.matchLevel,
-        matchReasons: rec.reasons,
+        formula: rec.formula,
+        explanation: rec.explanation,
+        matchReasons: rec.reasons || [],
+        reasons: rec.reasons || [],
         matchedSkills: rec.matchedSkills,
+        skillGaps: rec.skillGaps,
+        preparationActions: rec.preparationActions,
+        matchedInterests: rec.matchedInterests,
+        relevantPreferences: rec.relevantPreferences,
+        missingProfileInformation: rec.missingProfileInformation,
+        missingDataEffect: rec.missingDataEffect,
+        componentScores: rec.componentScores,
+        weightsUsed: rec.weightsUsed,
         eligibilityStatus: elig.status,
         isEligible: elig.isEligible,
         eligibilitySummary: elig.summary,
         eligibilityChecks: elig.checks,
+        eligibility: elig,
+        trustSignal: trust,
+        trustScore: trust.trustScore,
         isSaved,
         savedStatus,
         savedNotes
@@ -353,7 +369,11 @@ const getOpportunityEligibility = async (req, res, next) => {
     res.json({
       opportunityId: opportunity.id,
       title: opportunity.title,
-      eligibility
+      eligibility,
+      status: eligibility.status,
+      isEligible: eligibility.isEligible,
+      summary: eligibility.summary,
+      checks: eligibility.checks
     });
   } catch (err) {
     next(err);
@@ -510,20 +530,35 @@ const getRecommendations = async (req, res, next) => {
       const oppJson = opp.toJSON();
       const rec = RecommendationEngine.calculateMatch(studentProfile, oppJson);
       const elig = EligibilityEngine.evaluateEligibility(studentProfile, oppJson);
+      const trust = TrustSignalEngine.evaluateTrustSignal(oppJson);
 
       return {
         ...oppJson,
+        score: rec.score,
         matchScore: rec.score,
         matchLevel: rec.matchLevel,
-        matchReasons: rec.reasons,
+        formula: rec.formula,
+        explanation: rec.explanation,
         matchedSkills: rec.matchedSkills,
+        skillGaps: rec.skillGaps,
+        preparationActions: rec.preparationActions,
+        matchedInterests: rec.matchedInterests,
+        relevantPreferences: rec.relevantPreferences,
+        missingProfileInformation: rec.missingProfileInformation,
+        missingDataEffect: rec.missingDataEffect,
+        detailsLink: rec.detailsLink,
+        componentScores: rec.componentScores,
+        weightsUsed: rec.weightsUsed,
+        eligibility: elig,
         eligibilityStatus: elig.status,
-        isEligible: elig.isEligible
+        isEligible: elig.isEligible,
+        trustSignal: trust,
+        trustScore: trust.trustScore
       };
     });
 
-    // Sort by match score descending
-    scored.sort((a, b) => b.matchScore - a.matchScore);
+    // Sort deterministically with multi-criteria tie breaking
+    scored = RecommendationEngine.sortRecommendations(scored);
 
     const topLimit = parseInt(req.query.limit, 10) || 10;
     const recommendations = scored.slice(0, topLimit);

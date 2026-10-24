@@ -205,10 +205,6 @@ Restricted strictly to users with `role: "admin"`. Non-admin accounts receive `4
 | `POST` | `/api/admin/feeds/import` | Admin | Ingest local feed using validated identifier |
 | `GET` | `/api/admin/imports` | Admin | Paginated feed ingestion history & metrics |
 
-> **Security Whitelist**: `POST /api/admin/feeds/import` strictly validates against registered local feed identifiers (`sample-json-a`, `sample-xml-a`, `sample-json-b`, `hackathons`, `competitions`, `workshops`, `all`). Raw filesystem paths, path traversal sequences (`../`), or untrusted strings are rejected with `400 Bad Request`.
-
----
-
 #### 8. Data Import Pipeline Architecture
 - **Three Sample Local Fixtures**:
   - `sample-hackathons.json` (JSON Feed A): standard collegiate items schema.
@@ -219,6 +215,64 @@ Restricted strictly to users with `role: "admin"`. Non-admin accounts receive `4
 - **Idempotency & Change Notices**: Repeated ingestion runs do not create duplicates (`recordsUpdated` increments, `recordsCreated` remains 0). Meaningful changes to deadlines, costs, formats, or links generate `OpportunityUpdate` audit records and notify students who saved the listing.
 - **Streams, Buffers & EventEmitter**: Fixture reading utilizes safe Node.js streams and buffers confined to allowed directories. An EventEmitter broadcasts `import:started`, `import:completed`, and `import:error` events.
 - **DEMO/SAMPLE Labeling**: All fixtures are explicitly labeled as demonstration datasets. No external scraping or unauthorized access is performed.
+
+---
+
+#### 9. Deterministic Recommendation Engine & Dynamic Weight Normalization
+The recommendation engine operates completely deterministically without requiring an LLM or paid AI API. It ranks opportunities using a transparent multi-factor scoring model.
+
+**Configurable Baseline Weights**:
+- Skill Overlap: 30% (`0.30`)
+- Interest / Category Overlap: 25% (`0.25`)
+- Format, Location, and Availability Fit: 15% (`0.15`)
+- Budget Fit: 15% (`0.15`)
+- Experience Level or Beginner Suitability: 10% (`0.10`)
+- Sustainability Preference: 5% (`0.05`)
+
+**Dynamic Weight Re-Normalization**:
+When a student profile omits preferences (such as budget, preferred format, preferred location, or sustainability interest), missing profile attributes are excluded from the denominator rather than penalizing the student with a score of zero.
+- Active Weight Sum: The engine sums the weights of all criteria where the student has provided profile data.
+- Normalized Weight Calculation: Each active criterion weight is divided by the active weight sum (`normalizedWeight = baseWeight / activeWeightSum`).
+- Resulting Score: The sum of `normalizedWeight * criterionScore` guarantees a fair, calibrated 0 to 100 percentage match regardless of profile completeness.
+- Missing Data Disclosure: Every recommendation payload details `missingProfileInformation` and explains the mathematical effect on scoring (`missingDataEffect`), guiding students on which profile fields to complete to enhance matching fidelity.
+
+**Tie-Breaking Priority**:
+When two opportunities have identical match scores, ties are resolved deterministically using:
+1. Approaching application deadline (sooner deadlines take precedence).
+2. Higher trust/quality signal score.
+3. Creation recency.
+4. Alphabetical title collation.
+
+---
+
+#### 10. Independent Eligibility Engine
+Eligibility is evaluated completely independently from recommendation relevance so that relevance is never artificially depressed by administrative criteria.
+
+**Five Discrete Eligibility Statuses**:
+- `eligible`: All explicit opportunity criteria (budget, location, format, education, and required prerequisites) are demonstrably satisfied by the student's profile.
+- `likely_eligible`: Major criteria align and no explicit disqualifiers exist, though minor non-blocking checks remain unverified.
+- `needs_review`: An explicit opportunity requirement exists that cannot be confirmed from the student's profile (for example, specific age brackets, citizenship requirements, or institutional affiliations).
+- `not_eligible`: A definitive contradiction exists between the student profile and the opportunity's explicit criteria (for example, the opportunity cost exceeds the student's strict maximum budget, or strict in-person attendance is required in a non-matching location).
+- `unknown`: Neither explicit requirements nor profile attributes are sufficiently established to evaluate eligibility.
+
+**Zero-Inference Guarantee**:
+The engine strictly inspects only explicit opportunity requirements and verified profile data. It never infers age from graduation year, never assumes citizenship from location, and never deduces educational level without direct confirmation. Missing data always produces `needs_review` or `unknown` alongside a descriptive explanation.
+
+**Skill Gaps as Preparation Runway**:
+Skill gaps are treated as learning recommendations and preparation actions rather than automatic disqualifiers, unless the listing explicitly marks a skill as a strict mandatory gate.
+
+---
+
+#### 11. Trust & Data Quality Signal Engine
+Each opportunity carries an automated, auditable trust score (0 to 100) based on objective data health dimensions:
+- Source Provenance & Attribution: Verified origin domain, official application URL, and recognized institutional organizers.
+- Freshness: Verification recency and active timeline status.
+- Metadata Completeness: Availability of complete descriptions, category tagging, dates, cost disclosure, and contact points.
+- Expiration Status: Flagged automatically when event dates or deadlines have passed.
+- Contradiction Audits: Automated detection of date anomalies, conflicting delivery formats, or inconsistent fee structures.
+
+**Mandatory Internal Quality Disclaimer**:
+"INTERNAL DATA-QUALITY INDICATOR: This score reflects internal metadata completeness, automated consistency audits, and freshness. It is not an external guarantee or warranty that an opportunity is legitimate."
 
 ---
 
@@ -234,4 +288,4 @@ npm test
 npx jest tests/feedIngestion.test.js
 ```
 
-Current test status: **10 test suites passed, 100 total tests passed**.
+Current test status: **10 test suites passed, 110 total tests passed**.

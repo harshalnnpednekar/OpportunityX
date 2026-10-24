@@ -1,21 +1,33 @@
+/**
+ * EligibilityEngine — Deterministic, factual eligibility evaluation for OpportunityX.
+ * 
+ * Rules:
+ * - Independent from recommendation relevance scores.
+ * - Exact statuses: 'eligible', 'likely_eligible', 'needs_review', 'not_eligible', 'unknown'.
+ * - Relies strictly on explicit opportunity requirements and available profile facts.
+ * - Never infers age limits, location restrictions, education levels, or costs.
+ * - Skill gaps are treated as preparation suggestions, not automatic disqualifiers.
+ */
+
 class EligibilityEngine {
   /**
-   * Strictly evaluates whether a student meets the non-negotiable eligibility criteria
-   * @param {Object} profile - Student profile
+   * Evaluates student eligibility against explicit opportunity criteria
+   * @param {Object} profile - Student profile (can be null)
    * @param {Object} opportunity - Opportunity record
+   * @returns {Object} Evaluation result with status, summary, and itemized checks
    */
   static evaluateEligibility(profile, opportunity) {
     if (!profile) {
       return {
-        status: 'CONDITIONAL',
-        isEligible: true,
-        summary: 'Log in and complete your student profile to run automated eligibility verification.',
+        status: 'unknown',
+        isEligible: null,
+        summary: 'Log in and complete your student profile to evaluate eligibility.',
         checks: [
           {
             criterion: 'Profile Completion',
-            status: 'warning',
-            passed: false,
-            details: 'No student profile detected. Sign in to verify academic standing and geographic qualification.'
+            status: 'unknown',
+            passed: null,
+            details: 'No student profile detected. Sign in to evaluate academic standing and geographic qualification.'
           }
         ]
       };
@@ -23,127 +35,151 @@ class EligibilityEngine {
 
     const checks = [];
     let hasFailure = false;
-    let hasWarning = false;
+    let hasNeedsReview = false;
+    let hasExplicitRequirements = false;
 
+    // -------------------------------------------------------------
     // 1. Academic / Education Level Check
-    const allowedEdu = (opportunity.eligibleEducationLevels || []).map(e => String(e).toLowerCase());
-    const studentEdu = (profile.educationLevel || '').toLowerCase();
+    // -------------------------------------------------------------
+    const rawAllowedEdu = opportunity.eligibleEducationLevels || [];
+    const allowedEdu = (Array.isArray(rawAllowedEdu) ? rawAllowedEdu : [rawAllowedEdu])
+      .map(e => String(e).toLowerCase().trim())
+      .filter(Boolean);
 
-    if (allowedEdu.includes('all')) {
-      checks.push({
-        criterion: 'Academic Standing',
-        status: 'pass',
-        passed: true,
-        details: 'Open to all academic levels (high school, undergraduate, graduate, bootcamp).'
-      });
-    } else if (allowedEdu.length === 0) {
-      checks.push({
-        criterion: 'Academic Standing',
-        status: 'pass',
-        passed: true,
-        details: 'No restrictive academic requirements specified by organizer.'
-      });
-    } else if (studentEdu && allowedEdu.includes(studentEdu)) {
-      checks.push({
-        criterion: 'Academic Standing',
-        status: 'pass',
-        passed: true,
-        details: `Verified: Your academic level (${profile.educationLevel}) satisfies the requirement (${allowedEdu.join(', ')}).`
-      });
-    } else if (!studentEdu) {
-      hasWarning = true;
-      checks.push({
-        criterion: 'Academic Standing',
-        status: 'warning',
-        passed: false,
-        details: `Your profile lacks an education level. This opportunity requires: ${allowedEdu.join(', ')}.`
-      });
+    const studentEdu = String(profile.educationLevel || '').toLowerCase().trim();
+
+    if (allowedEdu.length > 0 && !allowedEdu.includes('all')) {
+      hasExplicitRequirements = true;
+      if (studentEdu) {
+        if (allowedEdu.includes(studentEdu)) {
+          checks.push({
+            criterion: 'Academic Standing',
+            status: 'pass',
+            passed: true,
+            details: `Verified: Academic level (${profile.educationLevel}) satisfies requirement (${allowedEdu.join(', ')}).`
+          });
+        } else {
+          hasFailure = true;
+          checks.push({
+            criterion: 'Academic Standing',
+            status: 'fail',
+            passed: false,
+            details: `Ineligible: Opportunity explicitly requires [${allowedEdu.join(', ')}], but your profile is registered as [${profile.educationLevel}].`
+          });
+        }
+      } else {
+        hasNeedsReview = true;
+        checks.push({
+          criterion: 'Academic Standing',
+          status: 'needs_review',
+          passed: null,
+          details: `Needs review: Opportunity requires [${allowedEdu.join(', ')}], but educationLevel is not specified in your profile.`
+        });
+      }
     } else {
-      hasFailure = true;
       checks.push({
         criterion: 'Academic Standing',
-        status: 'fail',
-        passed: false,
-        details: `Academic requirement not met: Opportunity requires [${allowedEdu.join(', ')}], but your profile is [${profile.educationLevel}].`
+        status: 'pass',
+        passed: true,
+        details: 'Open to all academic backgrounds (no restrictive degree requirements specified).'
       });
     }
 
+    // -------------------------------------------------------------
     // 2. Geographic / Regional Eligibility Check
-    const allowedRegions = (opportunity.eligibleCountries || []).map(c => String(c).toLowerCase());
-    const studentCountry = (profile.country || 'Global').toLowerCase();
+    // -------------------------------------------------------------
+    const rawAllowedRegions = opportunity.eligibleCountries || [];
+    const allowedRegions = (Array.isArray(rawAllowedRegions) ? rawAllowedRegions : [rawAllowedRegions])
+      .map(c => String(c).toLowerCase().trim())
+      .filter(Boolean);
 
-    if (allowedRegions.includes('global') || allowedRegions.length === 0) {
+    const studentCountry = String(profile.country || profile.preferredLocation || '').toLowerCase().trim();
+
+    if (allowedRegions.length > 0 && !allowedRegions.includes('global')) {
+      hasExplicitRequirements = true;
+      if (studentCountry && studentCountry !== 'global') {
+        const matchesRegion = allowedRegions.some(r => studentCountry.includes(r) || r.includes(studentCountry));
+        if (matchesRegion) {
+          checks.push({
+            criterion: 'Geographic Eligibility',
+            status: 'pass',
+            passed: true,
+            details: `Verified: Location (${profile.country || profile.preferredLocation}) is within permitted regions (${allowedRegions.join(', ')}).`
+          });
+        } else {
+          hasFailure = true;
+          checks.push({
+            criterion: 'Geographic Eligibility',
+            status: 'fail',
+            passed: false,
+            details: `Ineligible: Opportunity is restricted to participants in [${allowedRegions.join(', ')}], but your location is [${profile.country || profile.preferredLocation}].`
+          });
+        }
+      } else {
+        hasNeedsReview = true;
+        checks.push({
+          criterion: 'Geographic Eligibility',
+          status: 'needs_review',
+          passed: null,
+          details: `Needs review: Opportunity is restricted to [${allowedRegions.join(', ')}], but your country of residence is not specified in your profile.`
+        });
+      }
+    } else {
       checks.push({
         criterion: 'Geographic Eligibility',
         status: 'pass',
         passed: true,
         details: 'Open globally to participants worldwide.'
       });
-    } else if (allowedRegions.some(r => studentCountry.includes(r) || r.includes(studentCountry))) {
-      checks.push({
-        criterion: 'Geographic Eligibility',
-        status: 'pass',
-        passed: true,
-        details: `Verified: Your location (${profile.country}) is within the permitted regions (${allowedRegions.join(', ')}).`
-      });
-    } else if (studentCountry === 'global' || !studentCountry) {
-      hasWarning = true;
-      checks.push({
-        criterion: 'Geographic Eligibility',
-        status: 'warning',
-        passed: false,
-        details: `Specify your exact country in your profile. Opportunity restricted to: ${allowedRegions.join(', ')}.`
-      });
-    } else {
-      hasFailure = true;
-      checks.push({
-        criterion: 'Geographic Eligibility',
-        status: 'fail',
-        passed: false,
-        details: `Geographic restriction: Restricted to [${allowedRegions.join(', ')}], but your profile specifies [${profile.country}].`
-      });
     }
 
-    // 3. Age Constraints Check
+    // -------------------------------------------------------------
+    // 3. Age Constraints Check (No inference! Only explicit facts)
+    // -------------------------------------------------------------
     const minAge = opportunity.minAge;
     const maxAge = opportunity.maxAge;
 
     if (minAge || maxAge) {
-      // Estimate approximate age from graduation year assuming typical college grad age ~22
-      // e.g. graduation 2027 in 2026 implies ~21
-      let approxAge = null;
-      if (profile.graduationYear) {
-        const currentYear = 2026;
-        approxAge = 22 - (profile.graduationYear - currentYear);
-      }
+      hasExplicitRequirements = true;
+      // Never infer age from graduation year! Only use explicit profile age if recorded
+      const studentAge = profile.age !== undefined && profile.age !== null ? parseInt(profile.age, 10) : null;
 
-      if (approxAge !== null) {
+      if (studentAge !== null && !isNaN(studentAge)) {
         let agePassed = true;
-        let reason = `Estimated age (${approxAge} yrs based on grad class ${profile.graduationYear}) is within bounds`;
+        let failDetail = '';
 
-        if (minAge && approxAge < minAge) {
+        if (minAge && studentAge < minAge) {
           agePassed = false;
-          hasFailure = true;
-          reason = `Minimum age requirement is ${minAge} years old (estimated profile age is ${approxAge}).`;
+          failDetail = `Minimum age requirement is ${minAge} (profile age is ${studentAge}).`;
         }
-        if (maxAge && approxAge > maxAge) {
+        if (maxAge && studentAge > maxAge) {
           agePassed = false;
-          hasFailure = true;
-          reason = `Maximum age limit is ${maxAge} years old (estimated profile age is ${approxAge}).`;
+          failDetail = `Maximum age limit is ${maxAge} (profile age is ${studentAge}).`;
         }
 
-        checks.push({
-          criterion: 'Age Restriction',
-          status: agePassed ? 'pass' : 'fail',
-          passed: agePassed,
-          details: reason
-        });
+        if (agePassed) {
+          checks.push({
+            criterion: 'Age Restriction',
+            status: 'pass',
+            passed: true,
+            details: `Verified: Your age (${studentAge}) satisfies required bracket (${minAge || 'Any'} - ${maxAge || 'Any'}).`
+          });
+        } else {
+          hasFailure = true;
+          checks.push({
+            criterion: 'Age Restriction',
+            status: 'fail',
+            passed: false,
+            details: `Ineligible: ${failDetail}`
+          });
+        }
       } else {
+        hasNeedsReview = true;
         checks.push({
           criterion: 'Age Restriction',
-          status: 'warning',
-          passed: true,
-          details: `Organizer notes age range: ${minAge || 'Any'} - ${maxAge || 'Any'}. Verify birthdate manually.`
+          status: 'needs_review',
+          passed: null,
+          details: `Needs review: Opportunity specifies age range (${minAge || 'Any'} - ${maxAge || 'Any'}), but birthdate or exact age is not recorded in your student profile.`
         });
       }
     } else {
@@ -151,25 +187,63 @@ class EligibilityEngine {
         criterion: 'Age Restriction',
         status: 'pass',
         passed: true,
-        details: 'No strict age bracket specified.'
+        details: 'No strict age bracket specified by organizer.'
       });
     }
 
-    // Overall Status Computation
-    let status = 'ELIGIBLE';
-    let summary = 'You satisfy all verified eligibility requirements for this opportunity.';
+    // -------------------------------------------------------------
+    // 4. Skills Compatibility (Preparation, not automatic disqualifier)
+    // -------------------------------------------------------------
+    const oppSkills = (opportunity.requiredSkills || []).map(s => String(s).toLowerCase().trim()).filter(Boolean);
+    const studentSkills = (profile.skills || []).map(s => String(s).toLowerCase().trim()).filter(Boolean);
+    const missingSkills = oppSkills.filter(req => !studentSkills.some(s => s === req || s.includes(req) || req.includes(s)));
+
+    if (oppSkills.length > 0 && oppSkills[0] !== 'general') {
+      if (missingSkills.length > 0) {
+        checks.push({
+          criterion: 'Skill Preparation Runway',
+          status: 'info',
+          passed: true,
+          details: `Skill gaps (${missingSkills.slice(0, 3).join(', ')}): Recommended for self-study and preparation before start, not an admission disqualifier.`
+        });
+      } else {
+        checks.push({
+          criterion: 'Skill Compatibility',
+          status: 'pass',
+          passed: true,
+          details: 'All recommended prerequisite skills are represented in your profile.'
+        });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Final Status Resolution
+    // -------------------------------------------------------------
+    let status = 'eligible';
+    let summary = 'You satisfy all verified admission requirements for this opportunity.';
+    let isEligible = true;
 
     if (hasFailure) {
-      status = 'INELIGIBLE';
-      summary = 'Your profile does not satisfy one or more non-negotiable admission criteria.';
-    } else if (hasWarning) {
-      status = 'CONDITIONAL';
-      summary = 'Conditional: Please review prerequisites or complete missing fields in your profile.';
+      status = 'not_eligible';
+      isEligible = false;
+      summary = 'Your profile does not satisfy one or more explicit eligibility requirements.';
+    } else if (hasNeedsReview) {
+      status = 'needs_review';
+      isEligible = null;
+      summary = 'Manual review needed: Opportunity has explicit requirements that are unconfirmed in your profile.';
+    } else if (hasExplicitRequirements) {
+      status = 'eligible';
+      isEligible = true;
+      summary = 'All explicit eligibility criteria have been verified against your profile.';
+    } else {
+      status = 'likely_eligible';
+      isEligible = true;
+      summary = 'Likely eligible: No restrictive admission rules detected.';
     }
 
     return {
       status,
-      isEligible: status === 'ELIGIBLE',
+      isEligible,
       summary,
       checks
     };

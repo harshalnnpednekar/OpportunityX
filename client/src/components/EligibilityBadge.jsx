@@ -1,23 +1,36 @@
 import React, { useState } from 'react';
-import { ShieldCheck, ShieldAlert, AlertTriangle, X, Check, XCircle } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, HelpCircle, X, Check, XCircle, Info } from 'lucide-react';
 
-export default function EligibilityBadge({ status = 'CONDITIONAL', summary = '', checks = [] }) {
+export default function EligibilityBadge({ status = 'unknown', summary = '', checks = [] }) {
   const [showModal, setShowModal] = useState(false);
 
-  let badgeClass = 'eligibility-conditional';
-  let Icon = AlertTriangle;
-  let labelText = 'Eligibility Check';
+  const normalized = String(status || 'unknown').toLowerCase().trim();
 
-  if (status === 'ELIGIBLE') {
+  let badgeClass = 'eligibility-conditional';
+  let Icon = HelpCircle;
+  let labelText = 'Unknown';
+  let pillStyle = { backgroundColor: '#F3F4F6', color: '#4B5563', borderColor: '#E5E7EB' };
+
+  if (normalized === 'eligible') {
     badgeClass = 'eligibility-eligible';
     Icon = ShieldCheck;
     labelText = 'Eligible';
-  } else if (status === 'INELIGIBLE') {
+    pillStyle = { backgroundColor: 'rgba(13, 148, 136, 0.1)', color: '#0D9488', borderColor: 'rgba(13, 148, 136, 0.3)' };
+  } else if (normalized === 'likely_eligible') {
+    badgeClass = 'eligibility-eligible';
+    Icon = ShieldCheck;
+    labelText = 'Likely Eligible';
+    pillStyle = { backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#059669', borderColor: 'rgba(16, 185, 129, 0.3)' };
+  } else if (normalized === 'needs_review' || normalized === 'conditional') {
+    badgeClass = 'eligibility-conditional';
+    Icon = AlertTriangle;
+    labelText = 'Needs Review';
+    pillStyle = { backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706', borderColor: 'rgba(217, 119, 6, 0.3)' };
+  } else if (normalized === 'not_eligible' || normalized === 'ineligible') {
     badgeClass = 'eligibility-ineligible';
     Icon = ShieldAlert;
-    labelText = 'Ineligible';
-  } else {
-    labelText = 'Conditional';
+    labelText = 'Not Eligible';
+    pillStyle = { backgroundColor: 'rgba(220, 38, 38, 0.1)', color: '#DC2626', borderColor: 'rgba(220, 38, 38, 0.3)' };
   }
 
   return (
@@ -25,13 +38,14 @@ export default function EligibilityBadge({ status = 'CONDITIONAL', summary = '',
       <button
         type="button"
         className={`eligibility-pill ${badgeClass}`}
+        style={pillStyle}
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
           setShowModal(true);
         }}
         title="Click to inspect strict eligibility criteria breakdown"
-        aria-label={`Eligibility status: ${status}. Click for diagnostic.`}
+        aria-label={`Eligibility status: ${labelText}. Click for diagnostic.`}
       >
         <Icon size={13} />
         <span>{labelText}</span>
@@ -50,65 +64,80 @@ export default function EligibilityBadge({ status = 'CONDITIONAL', summary = '',
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div>
-                <span className={`badge ${status === 'ELIGIBLE' ? 'badge-verified' : status === 'INELIGIBLE' ? 'badge-danger' : 'badge-demo'}`} style={{ marginBottom: '0.5rem' }}>
-                  Strict Admission Verification
+                <span className="badge badge-neutral" style={{ marginBottom: '0.5rem' }}>
+                  Independent Admission Diagnostic
                 </span>
                 <h3 style={{ fontSize: '1.35rem', fontWeight: 700 }}>
-                  Eligibility Verification: {status}
+                  Eligibility Status: <span style={{ textTransform: 'capitalize' }}>{labelText}</span>
                 </h3>
                 <p style={{ fontSize: '0.875rem', color: 'var(--ink-secondary)', marginTop: '0.25rem' }}>
-                  {summary || 'Automated verification evaluated against your student profile attributes.'}
+                  {summary || 'Evaluated strictly separate from recommendation relevance using explicit criteria.'}
                 </p>
               </div>
+
               <button
+                type="button"
+                className="btn-icon"
                 onClick={() => setShowModal(false)}
-                className="btn btn-outline btn-sm"
-                aria-label="Close eligibility diagnostic"
-                style={{ padding: '0.25rem 0.5rem' }}
+                aria-label="Close dialog"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            {/* Checklist */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              {checks && checks.length > 0 ? (
-                checks.map((chk, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '0.85rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: chk.status === 'pass' ? '#F0FDFA' : chk.status === 'fail' ? '#FEF2F2' : '#FFFBEB',
-                      border: `1px solid ${chk.status === 'pass' ? '#CCFBF1' : chk.status === 'fail' ? '#FEE2E2' : '#FEF3C7'}`,
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '0.75rem'
-                    }}
-                  >
-                    <div style={{ marginTop: '2px' }}>
-                      {chk.status === 'pass' && <Check size={16} color="#0D9488" />}
-                      {chk.status === 'fail' && <XCircle size={16} color="#DC2626" />}
-                      {chk.status === 'warning' && <AlertTriangle size={16} color="#D97706" />}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--ink-primary)' }}>
-                        {chk.criterion}
-                      </div>
-                      <div style={{ fontSize: '0.825rem', color: 'var(--ink-secondary)', marginTop: '0.2rem' }}>
-                        {chk.details}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink-tertiary)' }}>
-                  Log in with your academic profile to evaluate strict criteria.
-                </p>
-              )}
+            <div style={{
+              padding: '0.85rem 1rem',
+              backgroundColor: 'var(--bg-surface-subtle)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-subtle)',
+              fontSize: '0.825rem',
+              color: 'var(--ink-secondary)',
+              marginBottom: '1.25rem'
+            }}>
+              <strong>Ground Truth Evaluation:</strong> Eligibility is determined solely from explicit organizer requirements and confirmed profile facts. Requirements with missing profile information are marked <em>needs review</em> rather than assuming exclusion or inferring unstated facts.
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="criteria-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {checks.map((chk, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.75rem',
+                    backgroundColor: chk.status === 'pass' ? 'rgba(13, 148, 136, 0.04)' :
+                                     chk.status === 'fail' ? 'rgba(220, 38, 38, 0.04)' :
+                                     chk.status === 'needs_review' ? 'rgba(217, 119, 6, 0.04)' :
+                                     'var(--bg-surface-subtle)'
+                  }}
+                >
+                  <div style={{ marginTop: '2px' }}>
+                    {chk.status === 'pass' ? (
+                      <Check size={16} color="#0D9488" />
+                    ) : chk.status === 'fail' ? (
+                      <XCircle size={16} color="#DC2626" />
+                    ) : chk.status === 'needs_review' ? (
+                      <AlertTriangle size={16} color="#D97706" />
+                    ) : (
+                      <Info size={16} color="#6B7280" />
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--ink-primary)' }}>
+                      {chk.criterion}
+                    </div>
+                    <div style={{ fontSize: '0.825rem', color: 'var(--ink-secondary)', marginTop: '0.15rem' }}>
+                      {chk.details}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
