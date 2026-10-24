@@ -12,6 +12,7 @@ const adminRoutes = require('./adminRoutes');
 // API Health Check
 router.get('/health', (req, res) => {
   res.json({
+    name: 'OpportunityX Platform API',
     status: 'ok',
     service: 'OpportunityX REST API',
     timestamp: new Date().toISOString()

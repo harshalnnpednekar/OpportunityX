@@ -1,5 +1,5 @@
 {
-  "name": "opportunityx-backend",
+  "name": "opportunityx-server",
   "version": "1.0.0",
   "description": "Backend API for OpportunityX - Student Opportunity Discovery Platform",
   "main": "src/server.js",
@@ -8,9 +8,15 @@
     "dev": "node --watch src/server.js",
     "db:init": "node src/scripts/initDb.js",
     "db:seed": "node src/seeders/seed.js",
-    "test": "jest --runInBand --detectOpenHandles --forceExit"
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "lint": "node --check src/server.js src/app.js src/routes/index.js src/middleware/errorHandler.js src/middleware/requestLogger.js"
   },
-  "keywords": ["opportunity-discovery", "education", "hackathons", "internships"],
+  "keywords": [
+    "opportunity-discovery",
+    "education",
+    "hackathons",
+    "internships"
+  ],
   "author": "OpportunityX Team",
   "license": "MIT",
   "dependencies": {

@@ -14,14 +14,20 @@ async function startServer() {
       await sequelize.sync({ alter: true });
       console.log('[OpportunityX] Database synchronized with models.');
     }
-
-    app.listen(PORT, () => {
-      console.log(`[OpportunityX] Server running on http://localhost:${PORT}`);
-    });
   } catch (err) {
-    console.error('[OpportunityX] Failed to initialize server:', err);
-    process.exit(1);
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[OpportunityX] Fatal: Failed to connect to database in production:', err);
+      process.exit(1);
+    } else {
+      console.warn('[OpportunityX] Warning: Could not connect to PostgreSQL. Starting in offline-db development mode.');
+      console.warn(`[OpportunityX] Error details: ${err.message}`);
+      console.warn('[OpportunityX] Start PostgreSQL and configure server/.env to use database-dependent features.');
+    }
   }
+
+  app.listen(PORT, () => {
+    console.log(`[OpportunityX] Server running on http://localhost:${PORT}`);
+  });
 }
 
 if (process.env.NODE_ENV !== 'test') {
