@@ -78,6 +78,16 @@ export default function OpportunityCard({ opportunity, onSavedChange }) {
               DEMO LISTING
             </span>
           )}
+          {opportunity.beginnerFriendly && (
+            <span className="badge badge-verified" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }} title="Suitable for beginners and first-time applicants">
+              Beginner Friendly
+            </span>
+          )}
+          {opportunity.sustainabilityFocused && (
+            <span className="badge badge-neutral" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', color: '#0F766E', borderColor: '#CCFBF1', backgroundColor: '#F0FDFA' }} title="Sustainability and climate track">
+              Sustainability
+            </span>
+          )}
           {opportunity.isDuplicate && (
             <span className="badge badge-danger" title="Duplicate fingerprint detected">
               DUPLICATE

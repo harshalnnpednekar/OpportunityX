@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Compass, ShieldCheck, Zap, ArrowRight, Sparkles, Users, CalendarCheck, CheckCircle } from 'lucide-react';
+import { Search, Compass, ShieldCheck, Zap, ArrowRight, Sparkles, Users, CalendarCheck, CheckCircle2, Sliders, ExternalLink } from 'lucide-react';
 import OrbitIllustration from '../components/OrbitIllustration';
 import OpportunityCard from '../components/OpportunityCard';
+import { CardSkeleton } from '../components/LoadingSkeleton';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [featuredOpportunities, setFeaturedOpportunities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,12 @@ export default function LandingPage() {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    navigate(`/explore?search=${encodeURIComponent(searchTerm.trim())}`);
+    const query = searchTerm.trim();
+    if (query) {
+      navigate(`/explore?search=${encodeURIComponent(query)}`);
+    } else {
+      navigate('/explore');
+    }
   };
 
   return (
@@ -38,38 +46,38 @@ export default function LandingPage() {
         <div className="container hero-grid">
           <div>
             <div className="hero-tag">
-              <Sparkles size={14} />
+              <Sparkles size={13} />
               <span>Intelligent Student Opportunity Discovery</span>
             </div>
 
             <h1 className="hero-title font-editorial">
-              Discover opportunities that align with your craft, not your search luck.
+              Find opportunities that shape your craft, not your search luck.
             </h1>
 
             <p className="hero-subtitle">
-              Consolidating collegiate hackathons, open science research, design sprints, and engineering fellowships into one clean, verified discovery catalog. Transparent eligibility checking, deterministic match scoring, and collaborative peer matching.
+              Consolidating collegiate hackathons, open science research grants, engineering fellowships, and design competitions into one clean, verified discovery catalog. Deterministic match scoring, independent eligibility checking, and structured preparation roadmaps.
             </p>
 
             {/* Functional Hero Search Bar */}
-            <form onSubmit={handleSearchSubmit} className="hero-search-box" role="search">
-              <Search size={18} color="var(--ink-tertiary)" style={{ marginLeft: '0.5rem' }} />
+            <form onSubmit={handleSearchSubmit} className="hero-search-box" role="search" aria-label="Quick opportunity search">
+              <Search size={18} color="var(--ink-tertiary)" style={{ marginLeft: '0.5rem' }} aria-hidden="true" />
               <input
                 type="text"
                 className="hero-search-input"
-                placeholder="Search by tech stack (Python, React), topic (AI, Climate), or organizer..."
+                placeholder="Search by tech stack (Python, React), topic (Climate, AI), or organizer..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Search opportunity catalog"
               />
               <button type="submit" className="btn btn-primary btn-sm">
-                <span>Explore Catalog</span>
+                <span>Search Catalogue</span>
                 <ArrowRight size={14} />
               </button>
             </form>
 
             {/* Category Shortcuts */}
             <div className="hero-category-shortcuts">
-              <span>Shortcuts:</span>
+              <span>Explore categories:</span>
               <Link to="/explore?type=hackathon" className="shortcut-link">Hackathons</Link>
               <Link to="/explore?type=fellowship" className="shortcut-link">Fellowships</Link>
               <Link to="/explore?type=competition" className="shortcut-link">Competitions</Link>
@@ -89,53 +97,53 @@ export default function LandingPage() {
       <section style={{ padding: '4.5rem 0 3.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
         <div className="container">
           <div className="section-header">
-            <span className="section-tag">Engineered for Ambitious Students</span>
+            <span className="section-tag">Deterministic Engineering</span>
             <h2 className="section-title font-editorial">
-              A discovery platform built on transparency, not black-box algorithms.
+              Built on transparent mathematics, not opaque AI guesswork.
             </h2>
             <p>
-              Traditional discovery is plagued by dead links, expired events, and vague eligibility requirements. OpportunityX establishes a new standard.
+              Traditional discovery is plagued by dead links, expired events, and vague eligibility requirements. OpportunityX establishes an explainable standard for collegiate opportunities.
             </p>
           </div>
 
           <div className="features-grid">
             <div className="feature-box">
-              <div className="feature-icon-wrapper">
-                <ShieldCheck size={22} color="#0D9488" />
+              <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(15, 118, 110, 0.08)' }}>
+                <ShieldCheck size={22} color="var(--accent-teal)" />
               </div>
-              <h3 className="font-editorial">Strict Eligibility Verification</h3>
+              <h3 className="font-editorial">Strict Zero-Inference Eligibility</h3>
               <p>
-                Relevance and eligibility are kept strictly separate. You receive an automated rule-based diagnostic for academic standing, regional boundaries, and age constraints before you invest time preparing.
+                Relevance and eligibility are kept strictly separate. The engine never infers age from graduation year or location from citizenship. Clear checks explain exactly why an opportunity is eligible, needs review, or is disqualified.
               </p>
             </div>
 
             <div className="feature-box">
-              <div className="feature-icon-wrapper">
-                <Zap size={22} color="#4F46E5" />
+              <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(79, 70, 229, 0.08)' }}>
+                <Zap size={22} color="var(--accent-violet-600)" />
               </div>
-              <h3 className="font-editorial">Deterministic Match Scoring</h3>
+              <h3 className="font-editorial">Explainable Match Scoring</h3>
               <p>
-                Every match score (0-100%) comes with an explainable, auditable point breakdown: skill overlaps, preferred focus areas, delivery formats, and planning feasibility.
+                Every match score (0–100%) comes with an auditable mathematical formula. Missing profile preferences trigger dynamic weight re-normalization, ensuring students are never unfairly penalized for omitted fields.
               </p>
             </div>
 
             <div className="feature-box">
-              <div className="feature-icon-wrapper">
-                <CalendarCheck size={22} color="#D97706" />
+              <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(180, 83, 9, 0.08)' }}>
+                <CalendarCheck size={22} color="var(--accent-amber)" />
               </div>
-              <h3 className="font-editorial">Preparation Roadmaps</h3>
+              <h3 className="font-editorial">4-Phase Sprint Roadmaps</h3>
               <p>
-                Never start at the last minute. Automatically generate tailored 4-phase milestone checklists spanning ideation, architecture, MVP prototyping, and demo pitch review.
+                Avoid last-minute rushes. Automatically generate tailored 4-phase milestone checklists spanning Discovery, Application, Preparation, and Final Sprint Execution with real-time completion tracking.
               </p>
             </div>
 
             <div className="feature-box">
-              <div className="feature-icon-wrapper">
+              <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(2, 132, 199, 0.08)' }}>
                 <Users size={22} color="#0284C7" />
               </div>
               <h3 className="font-editorial">Consent-Based Peer Matching</h3>
               <p>
-                Find complementary teammates interested in the same challenge. Explicit opt-in consent model protects your privacy while facilitating real cross-disciplinary collaboration.
+                Find complementary teammates interested in the same challenge. An explicit opt-in privacy consent model protects student identity while facilitating real multidisciplinary project teams.
               </p>
             </div>
           </div>
@@ -148,16 +156,16 @@ export default function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <span className="section-tag">Curated Catalog Previews</span>
-              <h2 className="font-editorial" style={{ fontSize: '2rem' }}>
+              <h2 className="font-editorial" style={{ fontSize: '2.15rem', color: 'var(--ink-primary)' }}>
                 Upcoming Hackathons, Fellowships &amp; Competitions
               </h2>
-              <p style={{ fontSize: '0.9rem', color: 'var(--ink-secondary)' }}>
-                Demonstration dataset standardized from multi-source JSON and XML feeds.
+              <p style={{ fontSize: '0.95rem', color: 'var(--ink-secondary)', marginTop: '0.25rem' }}>
+                Active opportunities ingested from multi-format JSON and XML feeds.
               </p>
             </div>
 
-            <Link to="/explore" className="btn btn-secondary btn-sm">
-              <span>View All 30 Opportunities</span>
+            <Link to="/explore" className="btn btn-secondary btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>Browse Full Catalogue</span>
               <ArrowRight size={14} />
             </Link>
           </div>
@@ -165,12 +173,7 @@ export default function LandingPage() {
           {loading ? (
             <div className="grid-cards">
               {[1, 2, 3].map(i => (
-                <div key={i} className="card" style={{ height: '360px' }}>
-                  <div className="skeleton" style={{ height: '24px', width: '40%', marginBottom: '1rem' }} />
-                  <div className="skeleton" style={{ height: '32px', marginBottom: '1rem' }} />
-                  <div className="skeleton" style={{ height: '80px', marginBottom: '1rem' }} />
-                  <div className="skeleton" style={{ height: '50px' }} />
-                </div>
+                <CardSkeleton key={i} />
               ))}
             </div>
           ) : (
@@ -182,7 +185,7 @@ export default function LandingPage() {
           )}
 
           <div style={{ textAlign: 'center', marginTop: '3.5rem' }}>
-            <Link to="/explore" className="btn btn-primary btn-lg">
+            <Link to="/explore" className="btn btn-primary btn-lg" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
               <span>Explore Complete Catalogue</span>
               <ArrowRight size={16} />
             </Link>

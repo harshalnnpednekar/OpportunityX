@@ -1,60 +1,63 @@
 /* ==========================================================================
    OpportunityX Design Tokens & Base Styles
-   Editorial Style Architecture for Ambitious Students
+   Art-Directed Editorial Architecture for Ambitious Students
    ========================================================================== */
 
 :root {
   /* Warm editorial surface palette */
-  --bg-page: #FBF9F5;
+  --bg-page: #FAF8F5;
   --bg-surface: #FFFFFF;
-  --bg-surface-subtle: #F6F3EB;
+  --bg-surface-subtle: #F5F1EB;
   --bg-surface-elevated: #FFFFFF;
-  --bg-surface-muted: #EFECE4;
-  --bg-surface-hover: #F2EFE8;
+  --bg-surface-muted: #EFEBE2;
+  --bg-surface-hover: #F2EDE4;
 
-  /* Typography / Inks */
-  --ink-primary: #111827;      /* Deep Ink */
-  --ink-secondary: #374151;    /* Slate Navy */
-  --ink-tertiary: #6B7280;     /* Muted Charcoal */
-  --ink-on-dark: #FBF9F5;
+  /* Typography / Inks (High Contrast & Readability) */
+  --ink-primary: #121826;      /* Deep Ink Navy */
+  --ink-secondary: #2E384D;    /* Slate Charcoal */
+  --ink-tertiary: #5E6A80;     /* Muted Editorial Grey */
+  --ink-on-dark: #FAF8F5;
 
   /* Restrained Violet Brand Accent */
-  --accent-violet-50: #EEF2FF;
-  --accent-violet-100: #E0E7FF;
+  --accent-violet-50: #EEF0FF;
+  --accent-violet-100: #E0E4FF;
   --accent-violet-500: #6366F1;
   --accent-violet-600: #4F46E5;
   --accent-violet-700: #4338CA;
   --accent-violet-900: #1E1B4B;
 
-  /* Subtle Teal Success */
+  /* Subtle Teal Success & Verified States */
   --teal-50: #F0FDFA;
   --teal-100: #CCFBF1;
   --teal-600: #0D9488;
   --teal-700: #0F766E;
+  --accent-teal: #0F766E;
 
-  /* Amber Alert / Warning */
+  /* Amber Alert / Warning / Review Required */
   --amber-50: #FFFBEB;
   --amber-100: #FEF3C7;
   --amber-600: #D97706;
   --amber-700: #B45309;
+  --accent-amber: #B45309;
 
-  /* Crimson Ineligible / Expired */
+  /* Crimson Ineligible / Expired / Disqualified */
   --crimson-50: #FEF2F2;
   --crimson-100: #FEE2E2;
   --crimson-600: #DC2626;
   --crimson-700: #B91C1C;
+  --accent-danger: #B91C1C;
 
   /* Borders & Dividers */
-  --border-subtle: #E7E3D8;
-  --border-medium: #D5CFBF;
+  --border-subtle: #E8E3D8;
+  --border-medium: #D5CFBE;
   --border-focus: #4F46E5;
 
-  /* Shadows - Crisp, Restrained */
-  --shadow-sm: 0 1px 2px 0 rgba(17, 24, 39, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(17, 24, 39, 0.07), 0 2px 4px -2px rgba(17, 24, 39, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(17, 24, 39, 0.08), 0 4px 6px -4px rgba(17, 24, 39, 0.04);
-  --shadow-card: 0 2px 8px -2px rgba(17, 24, 39, 0.06);
-  --shadow-card-hover: 0 8px 24px -4px rgba(17, 24, 39, 0.10);
+  /* Shadows - Crisp, Restrained, Non-generic */
+  --shadow-sm: 0 1px 2px 0 rgba(18, 24, 38, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(18, 24, 38, 0.06), 0 2px 4px -2px rgba(18, 24, 38, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(18, 24, 38, 0.07), 0 4px 6px -4px rgba(18, 24, 38, 0.03);
+  --shadow-card: 0 1px 3px rgba(18, 24, 38, 0.05), 0 2px 8px -2px rgba(18, 24, 38, 0.04);
+  --shadow-card-hover: 0 8px 24px -4px rgba(18, 24, 38, 0.08), 0 2px 6px -1px rgba(18, 24, 38, 0.04);
 
   /* Typography Stacks */
   --font-serif: 'Fraunces', Georgia, serif;
@@ -67,6 +70,10 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-normal: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Container width */
   --container-max: 1240px;
@@ -106,6 +113,12 @@ main {
   flex: 1;
 }
 
+/* Accessible Focus States */
+:focus-visible {
+  outline: 2px solid var(--accent-violet-600);
+  outline-offset: 2px;
+}
+
 /* Typography Headings */
 h1, h2, h3, h4, h5, h6 {
   color: var(--ink-primary);
@@ -125,7 +138,7 @@ p {
 a {
   color: var(--accent-violet-600);
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color var(--transition-fast);
 }
 
 a:hover {
@@ -171,7 +184,7 @@ input, select, textarea {
   font-size: 0.9rem;
   font-weight: 600;
   border-radius: var(--radius-md);
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -184,6 +197,7 @@ input, select, textarea {
 .btn-primary:hover {
   background-color: #1f2937;
   color: #FFFFFF;
+  transform: translateY(-1px);
 }
 
 .btn-accent {
@@ -194,6 +208,7 @@ input, select, textarea {
 
 .btn-accent:hover {
   background-color: var(--accent-violet-700);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -205,6 +220,7 @@ input, select, textarea {
 .btn-secondary:hover {
   background-color: var(--bg-surface-hover);
   border-color: var(--ink-secondary);
+  transform: translateY(-1px);
 }
 
 .btn-outline {
@@ -215,6 +231,7 @@ input, select, textarea {
 
 .btn-outline:hover {
   background-color: var(--bg-surface-hover);
+  border-color: var(--border-medium);
 }
 
 .btn-sm {
@@ -229,8 +246,9 @@ input, select, textarea {
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 /* Badges & Chips */
@@ -239,10 +257,10 @@ input, select, textarea {
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.65rem;
-  font-size: 0.775rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   border-radius: var(--radius-xs);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
@@ -290,7 +308,7 @@ input, select, textarea {
   color: var(--ink-primary);
 }
 
-.form-hint {
+.form-hint, .form-helper {
   font-size: 0.8rem;
   color: var(--ink-tertiary);
 }
@@ -303,13 +321,21 @@ input, select, textarea {
   border-radius: var(--radius-md);
   color: var(--ink-primary);
   font-size: 0.925rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
   border-color: var(--accent-violet-600);
   box-shadow: 0 0 0 3px var(--accent-violet-50);
+}
+
+.input-error {
+  border-color: var(--accent-danger) !important;
+}
+
+.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12) !important;
 }
 
 /* Responsive Grid Utilities */
@@ -325,19 +351,49 @@ input, select, textarea {
   }
 }
 
-/* Card Foundation */
+/* Card Foundation with 2-4px Lift */
 .card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   box-shadow: var(--shadow-card);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
 }
 
 .card:hover {
+  transform: translateY(-2px);
   box-shadow: var(--shadow-card-hover);
   border-color: var(--border-medium);
+}
+
+/* Loading Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #F2EDE4 25%, #E8E2D6 50%, #F2EDE4 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.6s infinite ease-in-out;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Subtle Staggered List Entrance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Respect Reduced Motion */
@@ -347,18 +403,6 @@ input, select, textarea {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+    transform: none !important;
   }
-}
-
-/* Loading Skeleton */
-.skeleton {
-  background: linear-gradient(90deg, #F2EFE8 25%, #E8E4DA 50%, #F2EFE8 75%);
-  background-size: 200% 100%;
-  animation: skeletonPulse 1.5s infinite;
-  border-radius: var(--radius-sm);
-}
-
-@keyframes skeletonPulse {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
 }

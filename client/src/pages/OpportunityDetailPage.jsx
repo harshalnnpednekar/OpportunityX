@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Calendar, Globe, Award, MapPin, ExternalLink, Bookmark, CheckCircle2,
-  AlertTriangle, ShieldCheck, ArrowLeft, Users, Clock, Compass, Share2
+  AlertTriangle, ShieldCheck, ArrowLeft, Users, Clock, Compass, Share2, Check,
+  Info, Sparkles, Layers, DollarSign, UserCheck, ShieldAlert
 } from 'lucide-react';
 import MatchScoreBadge from '../components/MatchScoreBadge';
 import EligibilityBadge from '../components/EligibilityBadge';
 import OpportunityCard from '../components/OpportunityCard';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 
@@ -44,6 +45,7 @@ export default function OpportunityDetailPage() {
 
   const opp = data?.opportunity;
   const related = data?.relatedOpportunities || [];
+  const trust = opp?.trustSignal;
 
   const handleSaveToggle = async () => {
     if (!isAuthenticated) {
@@ -68,6 +70,18 @@ export default function OpportunityDetailPage() {
     }
   };
 
+  const handleStatusChange = async (newStatus) => {
+    if (!isAuthenticated) return;
+    try {
+      await api.saveOpportunity({ opportunityId: opp.id, status: newStatus });
+      setSavedStatus(newStatus);
+      setIsSaved(true);
+      addToast(`Status updated to: ${newStatus}`, 'success');
+    } catch (err) {
+      addToast('Failed to update status', 'error');
+    }
+  };
+
   const handleGenerateRoadmap = async () => {
     if (!isAuthenticated) {
       addToast('Sign in to generate tailored preparation roadmaps.', 'info');
@@ -77,8 +91,8 @@ export default function OpportunityDetailPage() {
 
     setGeneratingRoadmap(true);
     try {
-      const res = await api.generateRoadmap(opp.id);
-      addToast('Preparation roadmap generated!', 'success');
+      await api.generateRoadmap(opp.id);
+      addToast('Preparation roadmap generated successfully!', 'success');
       navigate('/roadmaps');
     } catch (err) {
       addToast(err.message || 'Failed to generate roadmap', 'error');
@@ -89,22 +103,22 @@ export default function OpportunityDetailPage() {
 
   if (loading) {
     return (
-      <div className="container" style={{ padding: '4rem 0' }}>
+      <div className="container" style={{ padding: '4rem 1rem' }} aria-busy="true" aria-label="Loading opportunity details">
         <div className="skeleton" style={{ height: '36px', width: '30%', marginBottom: '1.5rem' }} />
-        <div className="skeleton" style={{ height: '180px', marginBottom: '2rem' }} />
-        <div className="skeleton" style={{ height: '300px' }} />
+        <div className="skeleton" style={{ height: '220px', marginBottom: '2rem' }} />
+        <div className="skeleton" style={{ height: '340px' }} />
       </div>
     );
   }
 
   if (!opp) {
     return (
-      <div className="container" style={{ padding: '5rem 0', textAlign: 'center' }}>
+      <div className="container" style={{ padding: '5rem 1rem', textAlign: 'center' }}>
         <h2 className="font-editorial" style={{ fontSize: '2rem', marginBottom: '1rem' }}>
           Opportunity Not Found
         </h2>
         <p style={{ color: 'var(--ink-secondary)', marginBottom: '1.5rem' }}>
-          The requested opportunity could not be retrieved from the catalog.
+          The requested listing could not be retrieved or has been archived from the active registry.
         </p>
         <Link to="/explore" className="btn btn-primary btn-sm">
           Return to Catalogue
@@ -113,13 +127,13 @@ export default function OpportunityDetailPage() {
     );
   }
 
-  const deadline = opp.applicationDeadline ? new Date(opp.applicationDeadline) : null;
+  const deadline = opp.applicationDeadline || opp.deadline ? new Date(opp.applicationDeadline || opp.deadline) : null;
   const daysLeft = deadline ? Math.ceil((deadline - new Date()) / (1000 * 60 * 60 * 24)) : null;
   const isPast = daysLeft !== null && daysLeft < 0;
 
   return (
     <div className="container" style={{ padding: '2.5rem 1rem 5rem' }}>
-      {/* Back link */}
+      {/* Back to Catalogue */}
       <div style={{ marginBottom: '1.5rem' }}>
         <Link to="/explore" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: 'var(--ink-secondary)', fontSize: '0.875rem', fontWeight: 600 }}>
           <ArrowLeft size={15} />
@@ -130,49 +144,177 @@ export default function OpportunityDetailPage() {
       <div className="detail-layout">
         {/* Main Column */}
         <div className="detail-main">
-          {/* Header Card */}
+          {/* Header Card prioritizing Deadline & Direct Portal Access */}
           <div style={{
             backgroundColor: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
             borderRadius: 'var(--radius-xl)',
-            padding: '2rem',
-            boxShadow: 'var(--shadow-card)'
+            padding: '2.25rem',
+            boxShadow: 'var(--shadow-card)',
+            marginBottom: '1.75rem'
           }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span className="badge badge-neutral" style={{ fontSize: '0.8rem' }}>
-                  {opp.opportunityType}
+                <span className="card-category-tag" style={{ fontSize: '0.8rem' }}>
+                  {opp.opportunityType || opp.category}
                 </span>
                 {opp.isDemo && (
-                  <span className="badge badge-demo" title="Seeded demonstration record">
+                  <span className="badge badge-demo" title="Seeded demonstration record for modeling">
                     DEMO LISTING
                   </span>
                 )}
+                {opp.status === 'expired' && (
+                  <span className="badge badge-danger">
+                    EXPIRED
+                  </span>
+                )}
               </div>
-              <span style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)' }}>
-                Source: {opp.sourceFeed} ({opp.sourceFormat?.toUpperCase()})
+
+              <span style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)', fontFamily: 'var(--font-mono)' }}>
+                Source: {opp.sourceFeed || opp.sourceName || 'Registry'}
               </span>
             </div>
 
-            <h1 className="font-editorial" style={{ fontSize: '2.25rem', lineHeight: 1.25, marginBottom: '0.5rem' }}>
+            <h1 className="font-editorial" style={{ fontSize: '2.35rem', lineHeight: 1.25, marginBottom: '0.5rem', color: 'var(--ink-primary)' }}>
               {opp.title}
             </h1>
 
-            <div style={{ fontSize: '1rem', color: 'var(--ink-secondary)', fontWeight: 600, marginBottom: '1.5rem' }}>
-              Organized by {opp.organization}
+            <div style={{ fontSize: '1.05rem', color: 'var(--ink-secondary)', fontWeight: 600, marginBottom: '1.75rem' }}>
+              Organized by {opp.organization || opp.organizer}
             </div>
 
-            {/* Score & Eligibility Evaluation Bar */}
+            {/* Prominent Deadline & Direct Action Bar */}
             <div style={{
               display: 'flex',
               flexWrap: 'wrap',
               alignItems: 'center',
+              justifyContent: 'space-between',
               gap: '1rem',
-              padding: '1rem 1.25rem',
-              backgroundColor: 'var(--bg-surface-subtle)',
+              padding: '1.25rem 1.5rem',
+              backgroundColor: 'var(--bg-page)',
               borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border-subtle)'
+              border: '1px solid var(--border-subtle)',
+              marginBottom: '1.5rem'
             }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-tertiary)', display: 'block', marginBottom: '0.2rem' }}>
+                  Application Deadline
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Calendar size={18} color="var(--ink-primary)" />
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink-primary)' }}>
+                    {deadline ? deadline.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'Rolling Admissions'}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                {daysLeft !== null && (
+                  <span style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    backgroundColor: isPast ? 'rgba(185, 28, 28, 0.1)' : daysLeft <= 7 ? 'rgba(180, 83, 9, 0.1)' : 'rgba(15, 118, 110, 0.1)',
+                    color: isPast ? 'var(--accent-danger)' : daysLeft <= 7 ? 'var(--accent-amber)' : 'var(--accent-teal)'
+                  }}>
+                    {isPast ? 'Deadline Closed' : `${daysLeft} days remaining`}
+                  </span>
+                )}
+
+                {opp.applicationUrl && (
+                  <a
+                    href={opp.applicationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                  >
+                    <span>Official Portal</span>
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Key Metadata Badges */}
+            <div className="card-footer-info" style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-subtle)' }}>
+              <div className="card-meta-item">
+                <Globe size={14} />
+                <span>Format: <strong>{opp.deliveryFormat || opp.format || 'Virtual'}</strong></span>
+              </div>
+              <div className="card-meta-item">
+                <MapPin size={14} />
+                <span>Location: <strong>{opp.location || 'Global'}</strong></span>
+              </div>
+              <div className="card-meta-item">
+                <DollarSign size={14} />
+                <span>Cost: <strong>{opp.costAmount ? `$${opp.costAmount}` : 'Free'}</strong></span>
+              </div>
+              {opp.teamMin && (
+                <div className="card-meta-item">
+                  <Users size={14} />
+                  <span>Team: <strong>{opp.teamMin}–{opp.teamMax || '+'} members</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 1. Strict Eligibility Diagnostic Section */}
+          <section className="detail-meta-box">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 className="font-editorial" style={{ fontSize: '1.35rem', color: 'var(--ink-primary)', marginBottom: '0.2rem' }}>
+                  Independent Eligibility Diagnostic
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)' }}>
+                  Evaluated strictly separate from recommendation relevance. Zero inferred assumptions.
+                </span>
+              </div>
+              <EligibilityBadge
+                status={opp.eligibilityStatus || opp.eligibility?.status || 'unknown'}
+                summary={opp.eligibilitySummary || opp.eligibility?.summary}
+                checks={opp.eligibilityChecks || opp.eligibility?.checks}
+              />
+            </div>
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--ink-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+              {opp.eligibilitySummary || opp.eligibility?.summary || 'Evaluated against verified criteria from your student profile.'}
+            </p>
+
+            <ul className="criteria-list">
+              {(opp.eligibilityChecks || opp.eligibility?.checks || []).map((chk, i) => (
+                <li key={i} className={`criteria-item ${chk.status}`}>
+                  <div style={{ fontWeight: 600, minWidth: '150px', color: 'var(--ink-primary)' }}>
+                    {chk.criterion}
+                  </div>
+                  <div style={{ flex: 1, color: 'var(--ink-secondary)', fontSize: '0.875rem' }}>
+                    {chk.details}
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: chk.status === 'passed' ? 'var(--accent-teal)' : chk.status === 'failed' ? 'var(--accent-danger)' : 'var(--accent-amber)'
+                  }}>
+                    {chk.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          {/* 2. Deterministic Recommendation & Match Explanation */}
+          <section className="detail-meta-box">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 className="font-editorial" style={{ fontSize: '1.35rem', color: 'var(--ink-primary)', marginBottom: '0.2rem' }}>
+                  Deterministic Match Explanation
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)' }}>
+                  Multi-factor point allocation with dynamic weight re-normalization.
+                </span>
+              </div>
               <MatchScoreBadge
                 score={opp.matchScore || opp.score || 50}
                 matchLevel={opp.matchLevel}
@@ -188,85 +330,72 @@ export default function OpportunityDetailPage() {
                 missingDataEffect={opp.missingDataEffect}
                 componentScores={opp.componentScores}
               />
-              <EligibilityBadge
-                status={opp.eligibilityStatus || opp.eligibility?.status || 'unknown'}
-                summary={opp.eligibilitySummary || opp.eligibility?.summary}
-                checks={opp.eligibilityChecks || opp.eligibility?.checks}
-              />
-              <div style={{ marginLeft: 'auto', fontSize: '0.85rem', color: 'var(--ink-tertiary)' }}>
-                {daysLeft !== null && (
-                  <span style={{ color: isPast ? '#DC2626' : '#0D9488', fontWeight: 600 }}>
-                    {isPast ? 'Deadline Closed' : `${daysLeft} days to deadline`}
-                  </span>
-                )}
+            </div>
+
+            {opp.formula && (
+              <div style={{
+                backgroundColor: 'var(--bg-page)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem 1rem',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.8rem',
+                color: 'var(--ink-primary)',
+                marginBottom: '1rem',
+                overflowX: 'auto'
+              }}>
+                <strong>Formula:</strong> {opp.formula}
+              </div>
+            )}
+
+            <p style={{ fontSize: '0.9rem', color: 'var(--ink-secondary)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+              {opp.explanation || 'Calculated using configured weights: Skill overlap (30%), Interest/category (25%), Format/availability (15%), Budget (15%), Experience level (10%), Sustainability (5%).'}
+            </p>
+
+            {/* Matched Skills vs Suggested Gaps */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <div style={{ backgroundColor: 'var(--bg-surface-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <h5 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-teal)', marginBottom: '0.5rem' }}>
+                  ✓ Matched Competencies
+                </h5>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {(opp.matchedSkills && opp.matchedSkills.length > 0) ? opp.matchedSkills.map(s => (
+                    <span key={s} className="skill-pill matched">{s}</span>
+                  )) : (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)' }}>No direct skill overlaps detected.</span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: 'var(--bg-surface-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <h5 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-amber)', marginBottom: '0.5rem' }}>
+                  Suggested Preparation Runway
+                </h5>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {(opp.skillGaps && opp.skillGaps.length > 0) ? opp.skillGaps.map(g => (
+                    <span key={g} className="skill-pill" style={{ borderColor: 'rgba(180, 83, 9, 0.3)' }}>{g}</span>
+                  )) : (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--ink-tertiary)' }}>Prerequisites satisfied.</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Detailed Overview */}
+          {/* 3. Program Overview & Details */}
           <section className="detail-meta-box">
-            <h3 className="font-editorial" style={{ fontSize: '1.35rem', marginBottom: '1rem' }}>
-              Program Overview
+            <h3 className="font-editorial" style={{ fontSize: '1.35rem', marginBottom: '1rem', color: 'var(--ink-primary)' }}>
+              Program Overview &amp; Curriculum
             </h3>
-            <p style={{ fontSize: '0.975rem', lineHeight: 1.7, color: 'var(--ink-secondary)', whiteSpace: 'pre-line' }}>
+            <p style={{ fontSize: '0.95rem', lineHeight: 1.7, color: 'var(--ink-secondary)', whiteSpace: 'pre-line' }}>
               {opp.description}
             </p>
           </section>
 
-          {/* Strict Eligibility Diagnostics Section */}
-          <section className="detail-meta-box">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 className="font-editorial" style={{ fontSize: '1.35rem' }}>
-                Strict Eligibility Diagnostic
-              </h3>
-              <span className={`badge ${opp.eligibilityStatus === 'ELIGIBLE' ? 'badge-verified' : opp.eligibilityStatus === 'INELIGIBLE' ? 'badge-danger' : 'badge-demo'}`}>
-                {opp.eligibilityStatus}
-              </span>
-            </div>
-
-            <p style={{ fontSize: '0.875rem', color: 'var(--ink-secondary)', marginBottom: '1.25rem' }}>
-              {opp.eligibilitySummary || 'Evaluated strictly separate from recommendation relevance.'}
-            </p>
-
-            <ul className="criteria-list">
-              {(opp.eligibilityChecks || []).map((chk, i) => (
-                <li key={i} className={`criteria-item ${chk.status}`}>
-                  <div style={{ fontWeight: 600, minWidth: '140px', color: 'var(--ink-primary)' }}>
-                    {chk.criterion}
-                  </div>
-                  <div style={{ flex: 1, color: 'var(--ink-secondary)' }}>
-                    {chk.details}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Required Skills & Competencies */}
-          <section className="detail-meta-box">
-            <h3 className="font-editorial" style={{ fontSize: '1.35rem', marginBottom: '1rem' }}>
-              Target Skills &amp; Core Toolkits
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {(opp.requiredSkills || []).map(skill => {
-                const isMatched = (opp.matchedSkills || []).includes(skill.toLowerCase());
-                return (
-                  <span
-                    key={skill}
-                    className={`skill-pill ${isMatched ? 'matched' : ''}`}
-                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}
-                  >
-                    {isMatched ? `✓ ${skill} (In your profile)` : skill}
-                  </span>
-                );
-              })}
-            </div>
-          </section>
-
           {/* Related Opportunities */}
           {related.length > 0 && (
-            <div style={{ marginTop: '1.5rem' }}>
-              <h3 className="font-editorial" style={{ fontSize: '1.35rem', marginBottom: '1.25rem' }}>
+            <div style={{ marginTop: '2rem' }}>
+              <h3 className="font-editorial" style={{ fontSize: '1.35rem', marginBottom: '1.25rem', color: 'var(--ink-primary)' }}>
                 Complementary &amp; Similar Opportunities
               </h3>
               <div className="grid-cards">
@@ -280,152 +409,123 @@ export default function OpportunityDetailPage() {
 
         {/* Sidebar Column */}
         <aside className="detail-sidebar">
-          {/* Action Callout */}
+          {/* Action Hub */}
           <div className="detail-meta-box" style={{ borderTop: '4px solid var(--accent-violet-600)' }}>
-            <h4 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem' }}>
-              Application &amp; Action Hub
+            <h4 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--ink-primary)' }}>
+              Action Hub
             </h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              {/* External Application URL */}
-              <a
-                href={opp.applicationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-accent"
-                style={{ width: '100%' }}
-              >
-                <span>Official Application Portal</span>
-                <ExternalLink size={15} />
-              </a>
+              {/* External Portal */}
+              {opp.applicationUrl && (
+                <a
+                  href={opp.applicationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary"
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <span>Official Application Portal</span>
+                  <ExternalLink size={15} />
+                </a>
+              )}
 
-              {/* Generate Preparation Roadmap Button */}
+              {/* Save to Tracker */}
+              <button
+                type="button"
+                onClick={handleSaveToggle}
+                className={`btn ${isSaved ? 'btn-secondary' : 'btn-outline'}`}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                {isSaved ? <Check size={15} color="var(--accent-teal)" /> : <Bookmark size={15} />}
+                <span>{isSaved ? 'Saved to Tracker' : 'Save to Pipeline'}</span>
+              </button>
+
+              {isSaved && (
+                <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-page)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                  <label htmlFor="pipelineStatus" style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink-tertiary)', display: 'block', marginBottom: '0.25rem' }}>
+                    Pipeline Stage:
+                  </label>
+                  <select
+                    id="pipelineStatus"
+                    value={savedStatus}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className="form-select"
+                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.65rem' }}
+                  >
+                    <option value="saved">Saved (Exploring)</option>
+                    <option value="planning">Planning to Apply</option>
+                    <option value="applied">Applied (Submitted)</option>
+                    <option value="accepted">Accepted / Attending</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Generate Preparation Roadmap */}
               <button
                 type="button"
                 onClick={handleGenerateRoadmap}
                 disabled={generatingRoadmap}
-                className="btn btn-primary"
-                style={{ width: '100%' }}
+                className="btn btn-secondary"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 <Compass size={15} />
-                <span>{generatingRoadmap ? 'Generating Plan...' : 'Generate Preparation Roadmap'}</span>
+                <span>{generatingRoadmap ? 'Generating Sprint Plan...' : 'Generate 4-Phase Roadmap'}</span>
               </button>
 
-              {/* Peer Teammate Matching Link */}
+              {/* Teammate Matching */}
               <Link
-                to={`/peer-matching?opportunityId=${opp.id}`}
-                className="btn btn-secondary"
-                style={{ width: '100%' }}
+                to={`/peers?opportunityId=${opp.id}`}
+                className="btn btn-outline"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 <Users size={15} />
-                <span>Find Peer Teammates</span>
+                <span>Find Teammates</span>
               </Link>
-
-              {/* Save / Track Button */}
-              <button
-                type="button"
-                onClick={handleSaveToggle}
-                className="btn btn-outline"
-                style={{ width: '100%', color: isSaved ? '#0D9488' : 'inherit' }}
-              >
-                <Bookmark size={15} fill={isSaved ? '#0D9488' : 'none'} />
-                <span>{isSaved ? 'Saved to Tracker' : 'Save to Deadline Tracker'}</span>
-              </button>
-            </div>
-
-            {/* Logistics Breakdown */}
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.875rem' }}>
-                <div>
-                  <div style={{ color: 'var(--ink-tertiary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Application Deadline
-                  </div>
-                  <strong style={{ color: isPast ? '#DC2626' : 'var(--ink-primary)' }}>
-                    {deadline ? deadline.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'Rolling Admission'}
-                  </strong>
-                </div>
-
-                <div>
-                  <div style={{ color: 'var(--ink-tertiary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Delivery Mode
-                  </div>
-                  <strong>
-                    {opp.format === 'virtual' ? '100% Virtual / Remote' :
-                     opp.format === 'in_person' ? `In-Person (${opp.location})` :
-                     `Hybrid (${opp.location} & Virtual)`}
-                  </strong>
-                </div>
-
-                <div>
-                  <div style={{ color: 'var(--ink-tertiary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Prizes &amp; Financial Support
-                  </div>
-                  <strong>
-                    {opp.stipendAmount ? `Living Stipend: ${opp.stipendAmount}` :
-                     opp.prizePool ? `Grants: ${opp.prizePool}` :
-                     'Educational / Credentialed Program'}
-                  </strong>
-                </div>
-
-                <div>
-                  <div style={{ color: 'var(--ink-tertiary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>
-                    Eligibility Scope
-                  </div>
-                  <span>
-                    {(opp.eligibleEducationLevels || []).join(', ')} • {(opp.eligibleCountries || []).join(', ')}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Trust & Data Quality Signal Box */}
+          {/* Data Quality & Trust Signal Card */}
           <div className="detail-meta-box">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span className="badge badge-neutral">Data Quality Audit</span>
-              <strong style={{ color: (opp.trustSignal?.trustScore || opp.trustScore || 100) >= 80 ? '#0D9488' : '#D97706', fontSize: '1.05rem' }}>
-                {opp.trustSignal?.trustScore || opp.trustScore || 100}% Quality
-              </strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <ShieldCheck size={18} color="var(--accent-teal)" />
+                <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>
+                  Data Quality Signal
+                </h4>
+              </div>
+              <span style={{
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '4px',
+                backgroundColor: (trust?.trustScore ?? 80) >= 70 ? 'rgba(15, 118, 110, 0.1)' : 'rgba(180, 83, 9, 0.1)',
+                color: (trust?.trustScore ?? 80) >= 70 ? 'var(--accent-teal)' : 'var(--accent-amber)'
+              }}>
+                {trust?.trustScore ?? opp.trustScore ?? 80}/100
+              </span>
             </div>
 
-            <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.35rem', color: 'var(--ink-primary)' }}>
-              {opp.trustSignal?.tier || 'High Quality & Fresh'}
+            <div style={{ fontSize: '0.8rem', color: 'var(--ink-secondary)', display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '1rem' }}>
+              <div>• Provenance: <strong>{trust?.provenance || opp.sourceName || 'Verified Ingestion Feed'}</strong></div>
+              <div>• Last Verified: <strong>{opp.lastVerifiedAt ? new Date(opp.lastVerifiedAt).toLocaleDateString() : 'Recent'}</strong></div>
+              <div>• Consistency: <strong>{(trust?.contradictionFlags?.length || 0) === 0 ? 'No contradictions detected' : 'Flagged for review'}</strong></div>
             </div>
 
-            <ul style={{ paddingLeft: '1.1rem', fontSize: '0.8rem', color: 'var(--ink-secondary)', marginBottom: '0.85rem' }}>
-              {(opp.trustSignal?.factors || []).map((f, i) => (
-                <li key={i} style={{ marginBottom: '0.2rem' }}>
-                  {f.detail || f.factor}
-                </li>
-              ))}
-            </ul>
-
+            {/* Mandatory Internal Quality Disclaimer */}
             <div style={{
               fontSize: '0.75rem',
               color: 'var(--ink-tertiary)',
-              padding: '0.5rem',
-              backgroundColor: 'var(--bg-surface-subtle)',
+              lineHeight: 1.45,
+              padding: '0.65rem 0.75rem',
+              backgroundColor: 'var(--bg-page)',
               borderRadius: 'var(--radius-sm)',
-              lineHeight: 1.4
+              border: '1px solid var(--border-subtle)'
             }}>
-              {opp.trustSignal?.disclaimer || 'INTERNAL DATA-QUALITY INDICATOR: This score reflects internal metadata completeness, automated consistency audits, and freshness. It is not an external guarantee or warranty that an opportunity is legitimate.'}
+              <Info size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: '-2px' }} />
+              <strong>Internal Quality Indicator:</strong> This score reflects internal metadata completeness, automated consistency audits, and freshness. It is not an external guarantee or warranty that an opportunity is legitimate.
             </div>
-          </div>
-
-          {/* Ethics & Provenance Notice */}
-          <div style={{
-            backgroundColor: 'var(--bg-surface-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.25rem',
-            border: '1px solid var(--border-subtle)',
-            fontSize: '0.8rem',
-            color: 'var(--ink-secondary)',
-            lineHeight: 1.5
-          }}>
-            <div style={{ fontWeight: 700, color: 'var(--ink-primary)', marginBottom: '0.35rem' }}>
-              Provenance &amp; Simulation Policy
-            </div>
-            This listing was normalized from source feed <code>{opp.sourceFeed}</code>. Never present seeded examples as live-verified events. OpportunityX does not automatically submit applications or retain user third-party credentials.
           </div>
         </aside>
       </div>
