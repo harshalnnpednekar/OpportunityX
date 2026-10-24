@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Compass, LogIn, Sparkles, Shield, User } from 'lucide-react';
+import { Compass, LogIn, Sparkles, Shield, User, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, sessionExpired } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const redirectPath = location.state?.from?.pathname || '/dashboard';
+  const isSessionExpired = sessionExpired || location.state?.sessionExpired;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,6 +106,26 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Session Expired Notice */}
+        {isSessionExpired && (
+          <div style={{
+            padding: '0.75rem 1rem',
+            backgroundColor: '#FFFBEB',
+            color: '#B45309',
+            border: '1px solid #FDE68A',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.85rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <AlertCircle size={16} />
+            <span>Your session has expired. Please sign in again to continue.</span>
+          </div>
+        )}
+
+        {/* Error Notice */}
         {errorMsg && (
           <div style={{
             padding: '0.75rem 1rem',

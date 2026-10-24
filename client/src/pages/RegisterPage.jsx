@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Compass, UserPlus, Sparkles } from 'lucide-react';
+import { Compass, UserPlus, Sparkles, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -16,6 +16,9 @@ export default function RegisterPage() {
     educationLevel: 'undergraduate',
     university: '',
     major: '',
+    preferredFormat: 'all',
+    experienceLevel: 'beginner',
+    peerMatchingConsent: true,
     skillsInput: 'Python, React, PyTorch',
     interestsInput: 'hackathons, AI/ML, fellowships'
   });
@@ -24,15 +27,22 @@ export default function RegisterPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleChange = (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (formData.password.length < 8) {
+      setErrorMsg('Password must be at least 8 characters long and contain both letters and numbers.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,12 +50,16 @@ export default function RegisterPage() {
       const interests = formData.interestsInput.split(',').map(i => i.trim()).filter(Boolean);
 
       await register({
+        name: formData.fullName,
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
         educationLevel: formData.educationLevel,
         university: formData.university,
         major: formData.major,
+        preferredFormat: formData.preferredFormat,
+        experienceLevel: formData.experienceLevel,
+        peerMatchingConsent: formData.peerMatchingConsent,
         skills,
         interests
       });
@@ -144,9 +158,9 @@ export default function RegisterPage() {
                 className="form-input"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="At least 6 chars"
+                placeholder="Min 8 chars, numbers & letters"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
           </div>
@@ -222,11 +236,34 @@ export default function RegisterPage() {
             />
           </div>
 
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            padding: '0.85rem 1rem',
+            backgroundColor: 'var(--bg-surface-subtle)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1.25rem'
+          }}>
+            <input
+              type="checkbox"
+              id="peerMatchingConsent"
+              name="peerMatchingConsent"
+              checked={formData.peerMatchingConsent}
+              onChange={handleChange}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--teal-600)', cursor: 'pointer' }}
+            />
+            <label htmlFor="peerMatchingConsent" style={{ fontSize: '0.85rem', color: 'var(--ink-secondary)', cursor: 'pointer' }}>
+              Allow verified students to discover my profile for collaboration on shared opportunities
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
             className="btn btn-primary"
-            style={{ width: '100%', marginTop: '0.75rem' }}
+            style={{ width: '100%', marginTop: '0.5rem' }}
           >
             <UserPlus size={15} />
             <span>{loading ? 'Creating Account...' : 'Complete Registration'}</span>

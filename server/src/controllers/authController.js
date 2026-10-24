@@ -1,5 +1,5 @@
 const { User, Profile } = require('../models');
-const { generateToken } = require('../middleware/auth');
+const { generateToken, getCookieOptions, getClearCookieOptions } = require('../middleware/auth');
 
 /**
  * Register a new student account
@@ -17,23 +17,32 @@ const register = async (req, res, next) => {
       skills,
       interests,
       preferredFormat,
+      formatPreference,
+      preferredLocation,
       experienceLevel,
-      peerMatchingConsent
+      budgetMax,
+      availability,
+      peerMatchingConsent,
+      isPublicForMatching
     } = req.body;
 
     const displayName = (name || fullName || '').trim();
+    const normalizedEmail = email.toLowerCase().trim();
 
-    const existing = await User.findOne({ where: { email: email.toLowerCase().trim() } });
+    const existing = await User.findOne({ where: { email: normalizedEmail } });
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
 
     const user = await User.create({
       name: displayName,
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       passwordHash: password,
       role: 'student'
     });
+
+    const format = preferredFormat || formatPreference || 'all';
+    const consent = peerMatchingConsent !== undefined ? Boolean(peerMatchingConsent) : Boolean(isPublicForMatching);
 
     const profile = await Profile.create({
       userId: user.id,
@@ -43,14 +52,20 @@ const register = async (req, res, next) => {
       major: major || '',
       skills: Array.isArray(skills) ? skills : [],
       interests: Array.isArray(interests) ? interests : [],
-      preferredFormat: preferredFormat || 'all',
-      formatPreference: preferredFormat || 'all',
+      budgetMax: budgetMax !== undefined ? parseFloat(budgetMax) : 0.00,
+      availability: availability || 'flexible',
+      preferredFormat: format,
+      formatPreference: format,
+      preferredLocation: preferredLocation || 'Global',
       experienceLevel: experienceLevel || 'beginner',
-      peerMatchingConsent: Boolean(peerMatchingConsent),
-      isPublicForMatching: Boolean(peerMatchingConsent)
+      peerMatchingConsent: consent,
+      isPublicForMatching: consent
     });
 
     const token = generateToken(user);
+
+    // Send secure httpOnly cookie
+    res.cookie('token', token, getCookieOptions());
 
     res.status(201).json({
       message: 'Account created successfully.',
@@ -91,6 +106,9 @@ const login = async (req, res, next) => {
 
     const token = generateToken(user);
 
+    // Send secure httpOnly cookie
+    res.cookie('token', token, getCookieOptions());
+
     res.json({
       message: 'Signed in successfully.',
       token,
@@ -108,9 +126,10 @@ const login = async (req, res, next) => {
 };
 
 /**
- * Log out
+ * Log out and clear active session cookie
  */
 const logout = async (req, res) => {
+  res.clearCookie('token', getClearCookieOptions());
   res.json({
     message: 'Logged out successfully.'
   });

@@ -26,8 +26,8 @@ export default function Navbar({ onOpenNotifications }) {
     checkDeadlines();
   }, [isAuthenticated]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 

@@ -39,8 +39,12 @@ const validateRegister = [
     .withMessage('A valid email address is required')
     .normalizeEmail(),
   body('password')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/[A-Za-z]/)
+    .withMessage('Password must contain at least one letter')
+    .matches(/\d/)
+    .withMessage('Password must contain at least one number'),
   body('name')
     .optional()
     .trim()

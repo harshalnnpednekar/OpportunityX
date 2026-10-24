@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
@@ -9,12 +10,12 @@ dotenv.config();
 
 const app = express();
 
-// Configure CORS from environment variables with safe defaults
+// Configure CORS using exact allowed frontend origins (no wildcards with credentials)
 const parseAllowedOrigins = () => {
   const envOrigins = (process.env.CLIENT_URL || process.env.CORS_ORIGIN || '')
     .split(',')
     .map(url => url.trim())
-    .filter(Boolean);
+    .filter(url => url && url !== '*'); // Disallow wildcard when credentials are true
 
   const defaultOrigins = [
     'http://localhost:5173',
@@ -33,26 +34,27 @@ app.use(cors({
     // Allow non-browser agents, CLI tools, tests, and same-origin requests
     if (!origin) return callback(null, true);
 
-    // Explicit wildcard or exact match
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      return callback(null, true);
+    // Exact origin match
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, origin);
     }
 
-    // Allow localhost or local IP origins in non-production environments
+    // Allow local development origins in non-production environments
     if (process.env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true);
+      return callback(null, origin);
     }
 
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id']
 }));
 
-// Request body parsing
+// Request body and cookie parsing
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Request logger (does not log passwords, tokens, or sensitive user data)
 app.use(requestLogger);

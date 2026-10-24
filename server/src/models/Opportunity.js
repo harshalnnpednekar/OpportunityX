@@ -144,6 +144,10 @@ const Opportunity = sequelize.define('Opportunity', {
     type: DataTypes.JSONB,
     defaultValue: []
   },
+  dataQualityFlags: {
+    type: DataTypes.JSONB,
+    defaultValue: []
+  },
   normalizedFingerprint: {
     type: DataTypes.STRING,
     allowNull: false
