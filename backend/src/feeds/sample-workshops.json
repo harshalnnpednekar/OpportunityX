@@ -1,0 +1,232 @@
+{
+  "feedTitle": "Workshops, Seminars & Undergraduate Research Registry [DEMO FEED]",
+  "feedVersion": "3.1",
+  "generatedAt": "2026-10-24T00:00:00Z",
+  "licenseNotice": "DEMO DATASET - Curated for educational discovery architecture testing. Not affiliated with live registrations.",
+  "items": [
+    {
+      "id": "work-201",
+      "title": "CERN OpenLab Summer Student Research Programme 2027",
+      "organization": "European Organization for Nuclear Research (CERN)",
+      "description": "Spend 9 weeks at CERN working with high-performance computing, quantum simulation, and machine learning architectures applied to Large Hadron Collider petabyte event reconstruction.",
+      "category": "research",
+      "format": "in_person",
+      "location": "Geneva, Switzerland",
+      "cost": "free",
+      "prizePool": "Full daily living allowance (~90 CHF/day) & travel reimbursed",
+      "stipend": "Living allowance & health insurance covered",
+      "experienceLevel": "intermediate",
+      "skills": ["C++", "Python", "High Performance Computing", "Linux", "Physics"],
+      "eligibility": {
+        "education": ["undergraduate", "graduate"],
+        "countries": ["Global"],
+        "minAge": 18
+      },
+      "deadline": "2027-01-31T23:59:59Z",
+      "startDate": "2027-06-20T08:30:00Z",
+      "endDate": "2027-08-22T17:00:00Z",
+      "applyUrl": "https://demo.openlab.cern.example.ch/summer-student"
+    },
+    {
+      "id": "work-202",
+      "title": "Stanford HAI Foundation Models Masterclass & Workshop",
+      "organization": "Stanford Institute for Human-Centered Artificial Intelligence",
+      "description": "A 5-day intensive technical workshop on scaling laws, multi-modal pre-training, parameter-efficient fine-tuning (LoRA), and mechanistic interpretability led by Stanford research faculty.",
+      "category": "workshop",
+      "format": "virtual",
+      "location": "Online / Zoom Webinar",
+      "cost": "free",
+      "prizePool": "Certified Stanford HAI Certificate of Completion",
+      "stipend": "None",
+      "experienceLevel": "intermediate",
+      "skills": ["PyTorch", "Transformers", "Python", "Deep Learning", "Linear Algebra"],
+      "eligibility": {
+        "education": ["undergraduate", "graduate", "bootcamp"],
+        "countries": ["Global"]
+      },
+      "deadline": "2026-11-12T23:59:59Z",
+      "startDate": "2026-11-18T16:00:00Z",
+      "endDate": "2026-11-22T20:00:00Z",
+      "applyUrl": "https://demo.hai.stanford.example.edu/masterclass-26"
+    },
+    {
+      "id": "work-203",
+      "title": "Carnegie Mellon Robotics Institute Summer Scholars (RISS)",
+      "organization": "Carnegie Mellon University",
+      "description": "An eleven-week undergraduate research immersion program where scholars conduct cutting-edge robotics research alongside world-class faculty in autonomous driving, manipulation, and perception.",
+      "category": "research",
+      "format": "in_person",
+      "location": "Pittsburgh, PA",
+      "cost": "free",
+      "prizePool": "$6,500 research stipend plus campus housing",
+      "stipend": "$6,500 stipend & housing included",
+      "experienceLevel": "advanced",
+      "skills": ["Robotics", "ROS 2", "C++", "Computer Vision", "Control Theory"],
+      "eligibility": {
+        "education": ["undergraduate"],
+        "countries": ["Global"],
+        "minAge": 18
+      },
+      "deadline": "2027-01-15T23:59:59Z",
+      "startDate": "2027-06-01T09:00:00Z",
+      "endDate": "2027-08-15T17:00:00Z",
+      "applyUrl": "https://demo.riss.ri.cmu.example.edu/apply"
+    },
+    {
+      "id": "work-204",
+      "title": "Google Summer of Code (GSoC) 2027 Preparation Bootcamp",
+      "organization": "Open Source Initiative & Google Open Source",
+      "description": "A 4-week structured mentorship workshop series teaching students how to read large open-source codebases, craft compelling proposals, write clean Git PRs, and engage with maintainers.",
+      "category": "workshop",
+      "format": "virtual",
+      "location": "Online / Discord",
+      "cost": "free",
+      "prizePool": "GSoC acceptance preparation toolkit & mentor reviews",
+      "stipend": "Free workshop series",
+      "experienceLevel": "beginner",
+      "skills": ["Git", "GitHub", "Open Source", "Code Review", "Documentation"],
+      "eligibility": {
+        "education": ["high_school", "undergraduate", "graduate", "bootcamp", "self_taught"],
+        "countries": ["Global"],
+        "minAge": 18
+      },
+      "deadline": "2026-12-10T23:59:59Z",
+      "startDate": "2027-01-05T18:00:00Z",
+      "endDate": "2027-02-05T20:00:00Z",
+      "applyUrl": "https://demo.summerofcode.example.com/bootcamp-2027"
+    },
+    {
+      "id": "work-205",
+      "title": "Berkeley Quantum Computing Student Laboratory Workshop",
+      "organization": "Berkeley Center for Quantum Information",
+      "description": "Hands-on quantum algorithm design and circuit execution on real superconducting QPUs using Qiskit and Cirq. Theoretical lectures combined with quantum compiler optimization exercises.",
+      "category": "workshop",
+      "format": "hybrid",
+      "location": "Berkeley, CA & Virtual",
+      "cost": "free",
+      "prizePool": "QPU compute allocations & research mentorship",
+      "stipend": "None",
+      "experienceLevel": "advanced",
+      "skills": ["Quantum Computing", "Qiskit", "Python", "Linear Algebra", "Complex Numbers"],
+      "eligibility": {
+        "education": ["undergraduate", "graduate"],
+        "countries": ["Global"]
+      },
+      "deadline": "2026-11-30T23:59:59Z",
+      "startDate": "2026-12-08T10:00:00Z",
+      "endDate": "2026-12-10T16:00:00Z",
+      "applyUrl": "https://demo.bcqit.berkeley.example.edu/workshop-2026"
+    },
+    {
+      "id": "work-206",
+      "title": "Rust Foundation Systems Programming Masterclass",
+      "organization": "Rust Foundation & Mozilla",
+      "description": "Comprehensive weekend deep dive into memory safety, borrow checker mastery, concurrent async runtimes (Tokio), and cross-compilation for WebAssembly microservices.",
+      "category": "workshop",
+      "format": "virtual",
+      "location": "Online",
+      "cost": "free",
+      "prizePool": "Rust Foundation Student Verified Credential",
+      "stipend": "Free access",
+      "experienceLevel": "intermediate",
+      "skills": ["Rust", "Systems Programming", "Async I/O", "Memory Management", "WebAssembly"],
+      "eligibility": {
+        "education": ["high_school", "undergraduate", "graduate", "bootcamp"],
+        "countries": ["Global"]
+      },
+      "deadline": "2026-11-22T23:59:59Z",
+      "startDate": "2026-12-02T17:00:00Z",
+      "endDate": "2026-12-04T20:00:00Z",
+      "applyUrl": "https://demo.rustfoundation.example.org/masterclass"
+    },
+    {
+      "id": "work-207",
+      "title": "Harvard Berkman Klein Center Tech Policy Student Fellowship",
+      "organization": "Harvard University",
+      "description": "Interdisciplinary semester research fellowship examining privacy law, digital human rights, automated decision transparency, and platform governance models.",
+      "category": "research",
+      "format": "hybrid",
+      "location": "Cambridge, MA & Remote",
+      "cost": "free",
+      "prizePool": "$4,000 research award",
+      "stipend": "$4,000 semester stipend",
+      "experienceLevel": "intermediate",
+      "skills": ["Policy Analysis", "Technical Writing", "Ethics", "Data Privacy", "Research"],
+      "eligibility": {
+        "education": ["undergraduate", "graduate"],
+        "countries": ["Global"],
+        "minAge": 18
+      },
+      "deadline": "2026-12-20T23:59:59Z",
+      "startDate": "2027-02-01T09:00:00Z",
+      "endDate": "2027-05-30T17:00:00Z",
+      "applyUrl": "https://demo.cyber.harvard.example.edu/fellowship-2027"
+    },
+    {
+      "id": "work-208",
+      "title": "MLSys Student Systems & Hardware Co-Design Seminar",
+      "organization": "MLSys Conference Student Committee",
+      "description": "Bi-weekly workshop exploring GPU kernel optimization with Triton, model quantization (4-bit/8-bit), and low-latency transformer inference pipelines.",
+      "category": "workshop",
+      "format": "virtual",
+      "location": "Online",
+      "cost": "free",
+      "prizePool": "Conference paper review guidance & GPU cloud credits",
+      "stipend": "Cloud compute access",
+      "experienceLevel": "advanced",
+      "skills": ["CUDA", "Triton", "PyTorch", "Hardware Architecture", "Python"],
+      "eligibility": {
+        "education": ["undergraduate", "graduate"],
+        "countries": ["Global"]
+      },
+      "deadline": "2026-11-19T23:59:59Z",
+      "startDate": "2026-11-26T18:00:00Z",
+      "endDate": "2026-12-17T20:00:00Z",
+      "applyUrl": "https://demo.mlsys.example.org/student-seminar-2026"
+    },
+    {
+      "id": "work-209",
+      "title": "UIUC High Performance Parallel Computing Lab [EXPIRED SAMPLE]",
+      "organization": "National Center for Supercomputing Applications (NCSA)",
+      "description": "Demonstration past record for parallel algorithms workshop testing expired date handling.",
+      "category": "workshop",
+      "format": "in_person",
+      "location": "Urbana-Champaign, IL",
+      "cost": "free",
+      "prizePool": "Supercomputer allocation time",
+      "stipend": "None",
+      "experienceLevel": "advanced",
+      "skills": ["MPI", "OpenMP", "C", "Supercomputing"],
+      "eligibility": {
+        "education": ["undergraduate", "graduate"],
+        "countries": ["USA"]
+      },
+      "deadline": "2026-07-30T23:59:59Z",
+      "startDate": "2026-08-10T09:00:00Z",
+      "endDate": "2026-08-14T17:00:00Z",
+      "applyUrl": "https://demo.ncsa.example.edu/hpc-workshop-past"
+    },
+    {
+      "id": "work-210",
+      "title": "Frontend Architecture & Web Performance Workshop [MISSING CRITICAL FIELDS SAMPLE]",
+      "organization": "Web Performance Consortium",
+      "description": "Intentional sample feed entry with missing critical fields (no deadline, empty skills, missing apply URL) to test data validator and quality audit flags.",
+      "category": "workshop",
+      "format": "virtual",
+      "location": "Online",
+      "cost": "free",
+      "prizePool": "",
+      "stipend": "",
+      "experienceLevel": "beginner",
+      "skills": [],
+      "eligibility": {
+        "education": ["undergraduate"],
+        "countries": []
+      },
+      "deadline": null,
+      "startDate": null,
+      "endDate": null,
+      "applyUrl": ""
+    }
+  ]
+}

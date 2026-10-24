@@ -1,0 +1,419 @@
+import React, { useState, useEffect } from 'react';
+import { User, ShieldCheck, Check, Sparkles, Plus, X, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import api from '../services/api';
+
+export default function ProfilePage() {
+  const { user, refreshUser } = useAuth();
+  const { addToast } = useToast();
+
+  const [formData, setFormData] = useState({
+    fullName: '',
+    bio: '',
+    educationLevel: 'undergraduate',
+    university: '',
+    major: '',
+    graduationYear: 2027,
+    country: 'USA',
+    skills: [],
+    interests: [],
+    formatPreference: 'all',
+    isPublicForMatching: false,
+    matchingBio: '',
+    githubUrl: '',
+    portfolioUrl: ''
+  });
+
+  const [newSkill, setNewSkill] = useState('');
+  const [newInterest, setNewInterest] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user?.profile) {
+      setFormData({
+        fullName: user.profile.fullName || '',
+        bio: user.profile.bio || '',
+        educationLevel: user.profile.educationLevel || 'undergraduate',
+        university: user.profile.university || '',
+        major: user.profile.major || '',
+        graduationYear: user.profile.graduationYear || 2027,
+        country: user.profile.country || 'USA',
+        skills: user.profile.skills || [],
+        interests: user.profile.interests || [],
+        formatPreference: user.profile.formatPreference || 'all',
+        isPublicForMatching: Boolean(user.profile.isPublicForMatching),
+        matchingBio: user.profile.matchingBio || '',
+        githubUrl: user.profile.githubUrl || '',
+        portfolioUrl: user.profile.portfolioUrl || ''
+      });
+    }
+  }, [user]);
+
+  const handleChange = (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: value
+    }));
+  };
+
+  const handleAddSkill = (e) => {
+    e.preventDefault();
+    if (!newSkill.trim()) return;
+    if (!formData.skills.includes(newSkill.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()]
+      }));
+    }
+    setNewSkill('');
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skillToRemove)
+    }));
+  };
+
+  const handleAddInterest = (e) => {
+    e.preventDefault();
+    if (!newInterest.trim()) return;
+    if (!formData.interests.includes(newInterest.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        interests: [...prev.interests, newInterest.trim()]
+      }));
+    }
+    setNewInterest('');
+  };
+
+  const handleRemoveInterest = (interestToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.filter(i => i !== interestToRemove)
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setSavedSuccess(false);
+
+    try {
+      await api.updateProfile(formData);
+      await refreshUser();
+      setSavedSuccess(true);
+      addToast('Profile updated successfully!', 'success');
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      addToast(err.message || 'Failed to update profile', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="container" style={{ padding: '3rem 1rem 5rem', maxWidth: '760px' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <h1 className="font-editorial" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>
+          Student Academic Profile
+        </h1>
+        <p style={{ color: 'var(--ink-secondary)', fontSize: '0.95rem' }}>
+          Manage your skills, academic standing, and privacy controls for automated matching and peer collaboration.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        {/* Core Credentials Card */}
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <h3 className="font-editorial" style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
+            Academic Credentials &amp; Location
+          </h3>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="fullName">Full Name</label>
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              className="form-input"
+              value={formData.fullName}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="educationLevel">Academic Standing</label>
+              <select
+                id="educationLevel"
+                name="educationLevel"
+                className="form-select"
+                value={formData.educationLevel}
+                onChange={handleChange}
+              >
+                <option value="undergraduate">Undergraduate Student</option>
+                <option value="graduate">Graduate (Master's / PhD)</option>
+                <option value="high_school">High School Student</option>
+                <option value="bootcamp">Bootcamp / Self-Taught</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="graduationYear">Expected Graduation Year</label>
+              <input
+                id="graduationYear"
+                name="graduationYear"
+                type="number"
+                className="form-input"
+                value={formData.graduationYear}
+                onChange={handleChange}
+                min={2024}
+                max={2035}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="university">University / Institution</label>
+              <input
+                id="university"
+                name="university"
+                type="text"
+                className="form-input"
+                value={formData.university}
+                onChange={handleChange}
+                placeholder="e.g. UC Berkeley"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="country">Country of Residence</label>
+              <input
+                id="country"
+                name="country"
+                type="text"
+                className="form-input"
+                value={formData.country}
+                onChange={handleChange}
+                placeholder="e.g. USA, Canada, India"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="major">Major / Field of Study</label>
+            <input
+              id="major"
+              name="major"
+              type="text"
+              className="form-input"
+              value={formData.major}
+              onChange={handleChange}
+              placeholder="e.g. Computer Science &amp; Engineering"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="bio">Personal Biography &amp; Goals</label>
+            <textarea
+              id="bio"
+              name="bio"
+              className="form-textarea"
+              rows={3}
+              value={formData.bio}
+              onChange={handleChange}
+              placeholder="Tell us about what you build, your research goals, or target hackathons..."
+            />
+          </div>
+        </div>
+
+        {/* Skills & Interests Card */}
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <h3 className="font-editorial" style={{ fontSize: '1.25rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
+            Technical Toolkits &amp; Discovery Interests
+          </h3>
+
+          {/* Skills Tag Input */}
+          <div className="form-group">
+            <label className="form-label">Verified Technical Skills</label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <input
+                type="text"
+                className="form-input"
+                value={newSkill}
+                onChange={(e) => setNewSkill(e.target.value)}
+                placeholder="Add a skill (e.g. PyTorch, Rust, ROS, Next.js)..."
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSkill(e); } }}
+              />
+              <button type="button" onClick={handleAddSkill} className="btn btn-secondary btn-sm">
+                <Plus size={14} />
+                <span>Add</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {formData.skills.map(skill => (
+                <span
+                  key={skill}
+                  className="skill-pill matched"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.65rem' }}
+                >
+                  <span>{skill}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSkill(skill)}
+                    aria-label={`Remove skill ${skill}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <span className="form-hint" style={{ marginTop: '0.5rem' }}>
+              The recommendation engine compares your skill list against opportunity requirements to assign deterministic relevance points.
+            </span>
+          </div>
+
+          {/* Interests */}
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label">Opportunity Focus Topics</label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <input
+                type="text"
+                className="form-input"
+                value={newInterest}
+                onChange={(e) => setNewInterest(e.target.value)}
+                placeholder="Add a topic (e.g. AI/ML, Climate, Quant, HealthTech)..."
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddInterest(e); } }}
+              />
+              <button type="button" onClick={handleAddInterest} className="btn btn-secondary btn-sm">
+                <Plus size={14} />
+                <span>Add</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {formData.interests.map(interest => (
+                <span
+                  key={interest}
+                  className="skill-pill"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.65rem' }}
+                >
+                  <span>{interest}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveInterest(interest)}
+                    aria-label={`Remove interest ${interest}`}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Format Preference */}
+          <div className="form-group" style={{ marginTop: '1.5rem' }}>
+            <label className="form-label" htmlFor="formatPreference">Preferred Delivery Format</label>
+            <select
+              id="formatPreference"
+              name="formatPreference"
+              className="form-select"
+              value={formData.formatPreference}
+              onChange={handleChange}
+            >
+              <option value="all">All Formats (Virtual, In-Person &amp; Hybrid)</option>
+              <option value="virtual">Virtual / Remote Only</option>
+              <option value="in_person">In-Person Only</option>
+              <option value="hybrid">Hybrid Preferred</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Consent-Based Peer Matching Card */}
+        <div className="card" style={{ marginBottom: '2.5rem', borderLeft: '4px solid var(--accent-violet-600)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <ShieldCheck size={20} color="#4F46E5" />
+            <h3 className="font-editorial" style={{ fontSize: '1.25rem' }}>
+              Consent-Based Peer Collaboration
+            </h3>
+          </div>
+
+          <p style={{ fontSize: '0.875rem', color: 'var(--ink-secondary)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+            OpportunityX strictly adheres to an explicit opt-in model. If enabled, other registered students who saved or prepared for the same opportunities can discover your technical skills and invite you to team up.
+          </p>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
+            padding: '1rem',
+            backgroundColor: formData.isPublicForMatching ? 'var(--teal-50)' : 'var(--bg-surface-subtle)',
+            borderRadius: 'var(--radius-md)',
+            border: `1px solid ${formData.isPublicForMatching ? 'var(--teal-100)' : 'var(--border-subtle)'}`,
+            marginBottom: '1.25rem'
+          }}>
+            <input
+              type="checkbox"
+              id="isPublicForMatching"
+              name="isPublicForMatching"
+              checked={formData.isPublicForMatching}
+              onChange={handleChange}
+              style={{ width: '18px', height: '18px', accentColor: 'var(--teal-600)', marginTop: '2px', cursor: 'pointer' }}
+            />
+            <div>
+              <label htmlFor="isPublicForMatching" style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--ink-primary)', cursor: 'pointer' }}>
+                Allow verified students to discover my profile for collaboration on shared opportunities
+              </label>
+              <div style={{ fontSize: '0.8rem', color: 'var(--ink-secondary)', marginTop: '0.2rem' }}>
+                {formData.isPublicForMatching 
+                  ? 'Active: Your profile is discoverable in teammate matching for opportunities you save.'
+                  : 'Private: Your profile will NOT appear in any peer searches. Private by default.'}
+              </div>
+            </div>
+          </div>
+
+          {formData.isPublicForMatching && (
+            <div className="form-group">
+              <label className="form-label" htmlFor="matchingBio">Teammate Collaboration Pitch</label>
+              <textarea
+                id="matchingBio"
+                name="matchingBio"
+                className="form-textarea"
+                rows={2}
+                value={formData.matchingBio}
+                onChange={handleChange}
+                placeholder="e.g. Looking for frontend/design partners to build climate tech solutions at CalHacks!"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Submit Button */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1rem' }}>
+          {savedSuccess && (
+            <span style={{ color: '#0D9488', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem' }}>
+              <Check size={16} />
+              <span>Saved successfully</span>
+            </span>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary btn-lg"
+          >
+            <span>{loading ? 'Saving Profile...' : 'Save Profile Settings'}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

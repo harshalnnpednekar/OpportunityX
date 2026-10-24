@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<competitionFeed version="1.8" source="Academic Competitions &amp; Global Student Fellowships Consortium [DEMO FEED]">
+  <feedNotice>DEMO DATASET - Standardized test feed for XML adapter ingestion. Not live-verified listings.</feedNotice>
+  <opportunities>
+    <entry>
+      <externalId>comp-101</externalId>
+      <name>ACM Collegiate Programming Contest North America Qualifier</name>
+      <sponsor>International Collegiate Programming Contest (ICPC)</sponsor>
+      <summary>The premier algorithmic problem-solving contest for university students. Teams of three tackle complex graph algorithms, dynamic programming, and computational geometry under strict memory and time boundaries.</summary>
+      <type>competition</type>
+      <deliveryMode>in_person</deliveryMode>
+      <venue>Regional University Hubs across USA &amp; Canada</venue>
+      <financials>
+        <feeStatus>free</feeStatus>
+        <prizes>$15,000 in regional scholarships and World Finals advancement</prizes>
+        <grant>Host university travel subsidy for top qualifying teams</grant>
+      </financials>
+      <difficulty>advanced</difficulty>
+      <competencies>
+        <skill>C++</skill>
+        <skill>Algorithms</skill>
+        <skill>Data Structures</skill>
+        <skill>Java</skill>
+        <skill>Mathematics</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>undergraduate</level>
+          <level>graduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>USA</region>
+          <region>Canada</region>
+        </eligibleRegions>
+        <maxAgeYears>24</maxAgeYears>
+      </admissionRules>
+      <closingDate>2026-11-25T23:59:59Z</closingDate>
+      <commenceDate>2026-12-05T09:00:00Z</commenceDate>
+      <conclusionDate>2026-12-05T17:00:00Z</conclusionDate>
+      <registrationLink>https://demo.icpc.example.global/naq-2026</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-102</externalId>
+      <name>KPCB Engineering Fellowship 2027 Cohort</name>
+      <sponsor>Kleiner Perkins Fellowship Program</sponsor>
+      <summary>A highly selective 3-month summer fellowship connecting top engineering and design students with Silicon Valley high-growth tech companies. Fellows receive private executive mentorship, CEO masterclasses, and an active alumni network.</summary>
+      <type>fellowship</type>
+      <deliveryMode>hybrid</deliveryMode>
+      <venue>San Francisco Bay Area &amp; Remote</venue>
+      <financials>
+        <feeStatus>stipend_provided</feeStatus>
+        <prizes>Full competitive software engineering compensation ($9,000+/month)</prizes>
+        <grant>Housing stipend and relocation allowance included</grant>
+      </financials>
+      <difficulty>advanced</difficulty>
+      <competencies>
+        <skill>System Architecture</skill>
+        <skill>TypeScript</skill>
+        <skill>Python</skill>
+        <skill>Distributed Systems</skill>
+        <skill>React</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>undergraduate</level>
+          <level>graduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+        <minAgeYears>18</minAgeYears>
+      </admissionRules>
+      <closingDate>2026-12-15T23:59:59Z</closingDate>
+      <commenceDate>2027-06-01T09:00:00Z</commenceDate>
+      <conclusionDate>2027-08-25T18:00:00Z</conclusionDate>
+      <registrationLink>https://demo.fellows.kleinerperkins.example.com/apply</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-103</externalId>
+      <name>NASA Space Apps Student Open Science Challenge</name>
+      <sponsor>NASA Earth Science Division</sponsor>
+      <summary>International hackathon and competition tackling open problems in planetary science, lunar geology, and astrophysics using real petabyte-scale NASA datasets and satellite telemetry.</summary>
+      <type>competition</type>
+      <deliveryMode>virtual</deliveryMode>
+      <venue>Virtual Worldwide</venue>
+      <financials>
+        <feeStatus>free</feeStatus>
+        <prizes>NASA Kennedy Space Center VIP Launch Tour and Global Award Plaques</prizes>
+        <grant>Open Science Cloud credits</grant>
+      </financials>
+      <difficulty>all</difficulty>
+      <competencies>
+        <skill>Python</skill>
+        <skill>Astronomy</skill>
+        <skill>Data Science</skill>
+        <skill>3D Modeling</skill>
+        <skill>Storytelling</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>high_school</level>
+          <level>undergraduate</level>
+          <level>graduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+      </admissionRules>
+      <closingDate>2026-12-01T23:59:59Z</closingDate>
+      <commenceDate>2026-12-08T00:00:00Z</commenceDate>
+      <conclusionDate>2026-12-10T23:59:59Z</conclusionDate>
+      <registrationLink>https://demo.spaceappschallenge.example.org/register</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-104</externalId>
+      <name>Microsoft Imagine Cup Student AI Breakthroughs</name>
+      <sponsor>Microsoft YouthSpark</sponsor>
+      <summary>Global technology competition empowering students to turn ambitious social impact ideas into functional startup ventures using modern AI tooling and Azure cloud services.</summary>
+      <type>competition</type>
+      <deliveryMode>hybrid</deliveryMode>
+      <venue>Seattle, WA &amp; Virtual Global</venue>
+      <financials>
+        <feeStatus>free</feeStatus>
+        <prizes>$100,000 Grand Prize plus private mentorship with Microsoft CEO</prizes>
+        <grant>$1,000 Azure AI compute voucher for qualifying teams</grant>
+      </financials>
+      <difficulty>intermediate</difficulty>
+      <competencies>
+        <skill>AI/ML</skill>
+        <skill>Cloud Architecture</skill>
+        <skill>C#</skill>
+        <skill>Python</skill>
+        <skill>Product Management</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>undergraduate</level>
+          <level>graduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+        <minAgeYears>16</minAgeYears>
+      </admissionRules>
+      <closingDate>2027-01-10T23:59:59Z</closingDate>
+      <commenceDate>2027-02-15T10:00:00Z</commenceDate>
+      <conclusionDate>2027-05-15T18:00:00Z</conclusionDate>
+      <registrationLink>https://demo.imaginecup.example.com/2027</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-105</externalId>
+      <name>Thiel Fellowship 2027 Young Innovators Call</name>
+      <sponsor>The Thiel Foundation</sponsor>
+      <summary>A 2-year $100,000 grant and mentorship program for young minds seeking to build revolutionary scientific or technical inventions outside the traditional classroom paradigm.</summary>
+      <type>fellowship</type>
+      <deliveryMode>virtual</deliveryMode>
+      <venue>San Francisco, CA &amp; Remote</venue>
+      <financials>
+        <feeStatus>stipend_provided</feeStatus>
+        <prizes>$100,000 equity-free grant</prizes>
+        <grant>Direct founder network and investor introductions</grant>
+      </financials>
+      <difficulty>advanced</difficulty>
+      <competencies>
+        <skill>Deep Tech</skill>
+        <skill>Hardware</skill>
+        <skill>Biotechnology</skill>
+        <skill>Entrepreneurship</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>high_school</level>
+          <level>undergraduate</level>
+          <level>bootcamp</level>
+          <level>self_taught</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+        <maxAgeYears>22</maxAgeYears>
+      </admissionRules>
+      <closingDate>2026-12-31T23:59:59Z</closingDate>
+      <commenceDate>2027-03-01T09:00:00Z</commenceDate>
+      <conclusionDate>2029-03-01T18:00:00Z</conclusionDate>
+      <registrationLink>https://demo.thielfellowship.example.org/apply</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-106</externalId>
+      <name>Bloomberg Global Student Quant Trading Competition</name>
+      <sponsor>Bloomberg Quantitative Analytics</sponsor>
+      <summary>Simulate quantitative market-making, algorithmic portfolio optimization, and statistical arbitrage strategies across tick-level simulated financial exchange feeds.</summary>
+      <type>competition</type>
+      <deliveryMode>virtual</deliveryMode>
+      <venue>Online / B-Quant Environment</venue>
+      <financials>
+        <feeStatus>free</feeStatus>
+        <prizes>$30,000 pool and fast-track quant interviews</prizes>
+        <grant>Complimentary access to Bloomberg Terminal data APIs</grant>
+      </financials>
+      <difficulty>advanced</difficulty>
+      <competencies>
+        <skill>Python</skill>
+        <skill>NumPy</skill>
+        <skill>Stochastic Calculus</skill>
+        <skill>Financial Engineering</skill>
+        <skill>C++</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>undergraduate</level>
+          <level>graduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+        <minAgeYears>18</minAgeYears>
+      </admissionRules>
+      <closingDate>2026-11-20T23:59:59Z</closingDate>
+      <commenceDate>2026-12-01T14:00:00Z</commenceDate>
+      <conclusionDate>2026-12-14T21:00:00Z</conclusionDate>
+      <registrationLink>https://demo.bloomberg.example.com/quant-student-2026</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-107</externalId>
+      <name>OpenAI Collegiate Safety Red-Teaming Fellowship</name>
+      <sponsor>Frontier AI Safety Consortium</sponsor>
+      <summary>A paid 4-month remote student fellowship researching model interpretability, jailbreak defenses, and multi-modal alignment protocols alongside senior alignment researchers.</summary>
+      <type>fellowship</type>
+      <deliveryMode>virtual</deliveryMode>
+      <venue>Remote Worldwide</venue>
+      <financials>
+        <feeStatus>stipend_provided</feeStatus>
+        <prizes>$6,000 monthly research stipend</prizes>
+        <grant>Dedicated cluster compute access</grant>
+      </financials>
+      <difficulty>advanced</difficulty>
+      <competencies>
+        <skill>AI Safety</skill>
+        <skill>PyTorch</skill>
+        <skill>Prompt Engineering</skill>
+        <skill>Linguistics</skill>
+        <skill>Python</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>undergraduate</level>
+          <level>graduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+      </admissionRules>
+      <closingDate>2027-01-20T23:59:59Z</closingDate>
+      <commenceDate>2027-03-01T09:00:00Z</commenceDate>
+      <conclusionDate>2027-06-30T17:00:00Z</conclusionDate>
+      <registrationLink>https://demo.safetyfellowship.example.org/apply</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-108</externalId>
+      <name>Adobe Creative Student Design Sprint 2026</name>
+      <sponsor>Adobe Design &amp; Education</sponsor>
+      <summary>A 48-hour digital experience and UI/UX design championship solving accessibility barriers for neurodivergent digital learners using next-generation generative design systems.</summary>
+      <type>competition</type>
+      <deliveryMode>virtual</deliveryMode>
+      <venue>Online / Figma Community</venue>
+      <financials>
+        <feeStatus>free</feeStatus>
+        <prizes>$20,000 Creative Grant &amp; Adobe Creative Cloud Master Subscriptions</prizes>
+        <grant>Mentorship by Adobe Chief Experience Designers</grant>
+      </financials>
+      <difficulty>beginner</difficulty>
+      <competencies>
+        <skill>Figma</skill>
+        <skill>UI/UX Design</skill>
+        <skill>Accessibility (a11y)</skill>
+        <skill>Design Systems</skill>
+        <skill>User Research</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>high_school</level>
+          <level>undergraduate</level>
+          <level>bootcamp</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+      </admissionRules>
+      <closingDate>2026-11-18T23:59:59Z</closingDate>
+      <commenceDate>2026-11-21T09:00:00Z</commenceDate>
+      <conclusionDate>2026-11-23T18:00:00Z</conclusionDate>
+      <registrationLink>https://demo.adobecreative.example.com/sprint-2026</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-109</externalId>
+      <name>Global Clean Water Technology Fellowship [EXPIRED XML SAMPLE]</name>
+      <sponsor>Global Water Stewardship Alliance</sponsor>
+      <summary>Historic sample entry from the XML stream demonstrating automatic ingestion expired status handling.</summary>
+      <type>fellowship</type>
+      <deliveryMode>in_person</deliveryMode>
+      <venue>Zurich, Switzerland</venue>
+      <financials>
+        <feeStatus>stipend_provided</feeStatus>
+        <prizes>€12,000 research fellowship</prizes>
+      </financials>
+      <difficulty>intermediate</difficulty>
+      <competencies>
+        <skill>Environmental Science</skill>
+        <skill>Chemical Engineering</skill>
+        <skill>IoT Sensors</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>undergraduate</level>
+          <level>graduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>Global</region>
+        </eligibleRegions>
+      </admissionRules>
+      <closingDate>2026-08-30T23:59:59Z</closingDate>
+      <commenceDate>2026-09-15T09:00:00Z</commenceDate>
+      <conclusionDate>2026-12-15T18:00:00Z</conclusionDate>
+      <registrationLink>https://demo.cleanwater.example.org/past-cohort</registrationLink>
+    </entry>
+
+    <entry>
+      <externalId>comp-110</externalId>
+      <name>National Cyber Defense Strategy Competition [CONTRADICTORY DATE SAMPLE]</name>
+      <sponsor>Collegiate Security Alliance</sponsor>
+      <summary>Deliberate data-quality test entry where deadline occurs after the start date to test data quality validation and warning flags.</summary>
+      <type>competition</type>
+      <deliveryMode>in_person</deliveryMode>
+      <venue>Washington, DC</venue>
+      <financials>
+        <feeStatus>free</feeStatus>
+        <prizes>$10,000</prizes>
+      </financials>
+      <difficulty>advanced</difficulty>
+      <competencies>
+        <skill>Cybersecurity</skill>
+        <skill>Policy</skill>
+      </competencies>
+      <admissionRules>
+        <targetLevels>
+          <level>undergraduate</level>
+        </targetLevels>
+        <eligibleRegions>
+          <region>USA</region>
+        </eligibleRegions>
+      </admissionRules>
+      <closingDate>2026-12-25T23:59:59Z</closingDate>
+      <commenceDate>2026-12-10T09:00:00Z</commenceDate>
+      <conclusionDate>2026-12-12T18:00:00Z</conclusionDate>
+      <registrationLink>https://demo.nationaldefense.example.org/apply</registrationLink>
+    </entry>
+  </opportunities>
+</competitionFeed>

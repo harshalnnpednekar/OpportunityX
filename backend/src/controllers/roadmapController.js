@@ -1,0 +1,202 @@
+const { Roadmap, RoadmapTask, Opportunity } = require('../models');
+const RoadmapGenerator = require('../services/roadmapGenerator');
+
+/**
+ * Generate a new preparation roadmap for an opportunity
+ */
+const generateRoadmap = async (req, res, next) => {
+  try {
+    const { opportunityId } = req.body;
+
+    if (!opportunityId) {
+      return res.status(400).json({ error: 'opportunityId is required.' });
+    }
+
+    const opportunity = await Opportunity.findByPk(opportunityId);
+    if (!opportunity) {
+      return res.status(404).json({ error: 'Opportunity not found.' });
+    }
+
+    // Check if user already has an active roadmap for this opportunity
+    let roadmap = await Roadmap.findOne({
+      where: { userId: req.user.id, opportunityId },
+      include: [{ model: RoadmapTask, as: 'tasks' }]
+    });
+
+    if (roadmap) {
+      return res.json({
+        message: 'Active roadmap already exists for this opportunity.',
+        roadmap
+      });
+    }
+
+    const plan = RoadmapGenerator.generatePlan(opportunity);
+
+    roadmap = await Roadmap.create({
+      userId: req.user.id,
+      opportunityId,
+      title: plan.title,
+      targetDeadline: plan.targetDeadline,
+      progressPercentage: 0,
+      status: 'active'
+    });
+
+    // Create tasks
+    const taskPromises = plan.tasks.map(t =>
+      RoadmapTask.create({
+        roadmapId: roadmap.id,
+        phase: t.phase,
+        title: t.title,
+        description: t.description,
+        dueDate: t.dueDate,
+        isCompleted: false,
+        orderIndex: t.orderIndex
+      })
+    );
+
+    await Promise.all(taskPromises);
+
+    const fullRoadmap = await Roadmap.findByPk(roadmap.id, {
+      include: [
+        { model: RoadmapTask, as: 'tasks' },
+        { model: Opportunity, as: 'opportunity' }
+      ],
+      order: [[{ model: RoadmapTask, as: 'tasks' }, 'orderIndex', 'ASC']]
+    });
+
+    res.status(201).json({
+      message: 'Preparation roadmap generated successfully.',
+      roadmap: fullRoadmap
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get all roadmaps for logged-in user
+ */
+const getUserRoadmaps = async (req, res, next) => {
+  try {
+    const roadmaps = await Roadmap.findAll({
+      where: { userId: req.user.id },
+      include: [
+        { model: RoadmapTask, as: 'tasks' },
+        { model: Opportunity, as: 'opportunity' }
+      ],
+      order: [
+        ['createdAt', 'DESC'],
+        [{ model: RoadmapTask, as: 'tasks' }, 'orderIndex', 'ASC']
+      ]
+    });
+
+    res.json({ roadmaps });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get single roadmap by ID
+ */
+const getRoadmapById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const roadmap = await Roadmap.findOne({
+      where: { id, userId: req.user.id },
+      include: [
+        { model: RoadmapTask, as: 'tasks' },
+        { model: Opportunity, as: 'opportunity' }
+      ],
+      order: [[{ model: RoadmapTask, as: 'tasks' }, 'orderIndex', 'ASC']]
+    });
+
+    if (!roadmap) {
+      return res.status(404).json({ error: 'Roadmap not found.' });
+    }
+
+    res.json({ roadmap });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Toggle task completion status
+ */
+const toggleTaskCompletion = async (req, res, next) => {
+  try {
+    const { roadmapId, taskId } = req.params;
+
+    const roadmap = await Roadmap.findOne({
+      where: { id: roadmapId, userId: req.user.id }
+    });
+
+    if (!roadmap) {
+      return res.status(404).json({ error: 'Roadmap not found.' });
+    }
+
+    const task = await RoadmapTask.findOne({
+      where: { id: taskId, roadmapId }
+    });
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found in this roadmap.' });
+    }
+
+    const newCompleted = !task.isCompleted;
+    await task.update({
+      isCompleted: newCompleted,
+      completedAt: newCompleted ? new Date() : null
+    });
+
+    // Recalculate progress percentage
+    const allTasks = await RoadmapTask.findAll({ where: { roadmapId } });
+    const completedCount = allTasks.filter(t => t.isCompleted).length;
+    const progress = Math.round((completedCount / allTasks.length) * 100);
+
+    await roadmap.update({
+      progressPercentage: progress,
+      status: progress === 100 ? 'completed' : 'active'
+    });
+
+    res.json({
+      message: newCompleted ? 'Task marked complete.' : 'Task marked incomplete.',
+      task,
+      progressPercentage: progress,
+      roadmapStatus: roadmap.status
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Delete a roadmap
+ */
+const deleteRoadmap = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await Roadmap.destroy({
+      where: { id, userId: req.user.id }
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Roadmap not found.' });
+    }
+
+    res.json({ message: 'Roadmap deleted.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  generateRoadmap,
+  getUserRoadmaps,
+  getRoadmapById,
+  toggleTaskCompletion,
+  deleteRoadmap
+};

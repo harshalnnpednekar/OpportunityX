@@ -1,0 +1,14 @@
+const express = require('express');
+const router = express.Router();
+const roadmapController = require('../controllers/roadmapController');
+const { requireAuth } = require('../middleware/auth');
+
+router.use(requireAuth);
+
+router.post('/generate', roadmapController.generateRoadmap);
+router.get('/', roadmapController.getUserRoadmaps);
+router.get('/:id', roadmapController.getRoadmapById);
+router.patch('/:roadmapId/tasks/:taskId/toggle', roadmapController.toggleTaskCompletion);
+router.delete('/:id', roadmapController.deleteRoadmap);
+
+module.exports = router;
