@@ -11,10 +11,6 @@ const RoadmapTask = sequelize.define('RoadmapTask', {
     type: DataTypes.UUID,
     allowNull: false
   },
-  phase: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
   title: {
     type: DataTypes.STRING,
     allowNull: false
@@ -27,6 +23,22 @@ const RoadmapTask = sequelize.define('RoadmapTask', {
     type: DataTypes.DATE,
     allowNull: true
   },
+  status: {
+    type: DataTypes.STRING, // 'pending', 'in_progress', 'completed'
+    defaultValue: 'pending'
+  },
+  sortOrder: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  orderIndex: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  phase: {
+    type: DataTypes.STRING,
+    defaultValue: 'Phase 1'
+  },
   isCompleted: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
@@ -34,16 +46,21 @@ const RoadmapTask = sequelize.define('RoadmapTask', {
   completedAt: {
     type: DataTypes.DATE,
     allowNull: true
-  },
-  orderIndex: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
   }
 }, {
   tableName: 'roadmap_tasks',
   timestamps: true,
+  hooks: {
+    beforeValidate: (t) => {
+      if (t.sortOrder !== undefined && t.orderIndex === undefined) t.orderIndex = t.sortOrder;
+      if (t.orderIndex !== undefined && t.sortOrder === undefined) t.sortOrder = t.orderIndex;
+      if (t.isCompleted && t.status === 'pending') t.status = 'completed';
+      if (!t.isCompleted && t.status === 'completed') t.status = 'pending';
+    }
+  },
   indexes: [
-    { fields: ['roadmapId', 'orderIndex'] }
+    { fields: ['roadmapId', 'sortOrder'] },
+    { fields: ['status'] }
   ]
 });
 

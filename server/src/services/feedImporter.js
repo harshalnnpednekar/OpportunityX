@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const FeedNormalizer = require('./feedNormalizer');
-const { Opportunity, IngestionLog } = require('../models');
+const { Opportunity, FeedImport } = require('../models');
 
 class FeedImporter {
   /**
@@ -42,7 +42,7 @@ class FeedImporter {
         if (item.dataQualityFlags.includes('missing_title') && item.dataQualityFlags.includes('missing_application_url')) {
           invalidSkipped++;
           details.push({
-            externalId: item.externalId,
+            externalId: item.sourceRecordId || item.externalId,
             title: item.title,
             action: 'skipped_invalid',
             reason: 'Missing title and application URL'
@@ -52,20 +52,20 @@ class FeedImporter {
 
         // Check for batch internal duplicate
         let isBatchDuplicate = false;
-        if (batchFingerprints.has(item.fingerprint)) {
+        const fp = item.normalizedFingerprint || item.fingerprint;
+        if (batchFingerprints.has(fp)) {
           isBatchDuplicate = true;
           item.isDuplicate = true;
-          item.duplicateOfId = batchFingerprints.get(item.fingerprint);
+          item.duplicateOfId = batchFingerprints.get(fp);
           item.dataQualityFlags.push('duplicate_in_same_feed');
         }
 
-        // Check if an existing opportunity has the same fingerprint or externalId + sourceFeed
+        // Check if an existing opportunity has the same fingerprint
         const existingByFingerprint = await Opportunity.findOne({
-          where: { fingerprint: item.fingerprint }
+          where: { normalizedFingerprint: fp }
         });
 
         if (existingByFingerprint && !isBatchDuplicate) {
-          // It's a duplicate of an existing record in DB
           item.isDuplicate = true;
           item.duplicateOfId = existingByFingerprint.id;
           if (!item.dataQualityFlags.includes('duplicate_record')) {
@@ -78,11 +78,13 @@ class FeedImporter {
           expiredFlagged++;
         }
 
-        // Find by exact externalId + sourceFeed to check if this is an update
+        // Find by exact sourceRecordId + sourceName to check if this is an update
+        const recId = item.sourceRecordId || item.externalId;
+        const sName = item.sourceName || item.sourceFeed;
         const existingRecord = await Opportunity.findOne({
           where: {
-            externalId: item.externalId,
-            sourceFeed: item.sourceFeed
+            sourceRecordId: recId,
+            sourceName: sName
           }
         });
 
@@ -93,7 +95,7 @@ class FeedImporter {
           itemsUpdated++;
           details.push({
             id: savedRecord.id,
-            externalId: item.externalId,
+            externalId: recId,
             title: item.title,
             action: 'updated',
             flags: item.dataQualityFlags,
@@ -110,7 +112,7 @@ class FeedImporter {
           itemsIngested++;
           details.push({
             id: savedRecord.id,
-            externalId: item.externalId,
+            externalId: recId,
             title: item.title,
             action: 'created',
             flags: item.dataQualityFlags,
@@ -118,14 +120,14 @@ class FeedImporter {
           });
         }
 
-        if (!batchFingerprints.has(item.fingerprint)) {
-          batchFingerprints.set(item.fingerprint, savedRecord.id);
+        if (!batchFingerprints.has(fp)) {
+          batchFingerprints.set(fp, savedRecord.id);
         }
       } catch (err) {
-        console.error(`Failed to ingest item ${item.externalId}:`, err.message);
+        console.error(`Failed to ingest item ${item.sourceRecordId || item.externalId}:`, err.message);
         invalidSkipped++;
         details.push({
-          externalId: item.externalId,
+          externalId: item.sourceRecordId || item.externalId,
           title: item.title,
           action: 'error',
           error: err.message
@@ -134,10 +136,19 @@ class FeedImporter {
     }
 
     const logStatus = invalidSkipped > 0 || duplicatesFlagged > 0 ? 'warning' : 'success';
-    const log = await IngestionLog.create({
-      feedName,
-      feedType,
+    const log = await FeedImport.create({
+      sourceName: feedName,
+      sourceType: feedType,
+      startedAt: new Date(startTime),
+      finishedAt: new Date(),
+      recordsSeen: normalizedItems.length,
+      recordsCreated: itemsIngested,
+      recordsUpdated: itemsUpdated,
+      duplicatesFound: duplicatesFlagged,
+      errors: details.filter(d => d.action === 'error' || d.action === 'skipped_invalid'),
       status: logStatus,
+
+      // Compatibility fields
       totalProcessed: normalizedItems.length,
       itemsIngested,
       itemsUpdated,

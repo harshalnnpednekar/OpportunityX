@@ -15,6 +15,16 @@ const SavedOpportunity = sequelize.define('SavedOpportunity', {
     type: DataTypes.UUID,
     allowNull: false
   },
+  reminderEnabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  savedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+
+  // Compatibility fields for tracking pipeline and notes
   status: {
     type: DataTypes.STRING, // 'saved', 'planning', 'applied', 'accepted', 'completed'
     defaultValue: 'saved'
@@ -31,8 +41,13 @@ const SavedOpportunity = sequelize.define('SavedOpportunity', {
   tableName: 'saved_opportunities',
   timestamps: true,
   indexes: [
-    { unique: true, fields: ['userId', 'opportunityId'] },
-    { fields: ['status'] }
+    {
+      unique: true,
+      fields: ['userId', 'opportunityId'],
+      name: 'unique_user_opportunity_saved'
+    },
+    { fields: ['status'] },
+    { fields: ['reminderEnabled'] }
   ]
 });
 

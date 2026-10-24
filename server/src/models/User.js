@@ -8,6 +8,11 @@ const User = sequelize.define('User', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'Student'
+  },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -21,8 +26,11 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   role: {
-    type: DataTypes.ENUM('student', 'admin'),
-    defaultValue: 'student'
+    type: DataTypes.STRING,
+    defaultValue: 'student',
+    validate: {
+      isIn: [['student', 'admin']]
+    }
   }
 }, {
   tableName: 'users',

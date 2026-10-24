@@ -15,25 +15,32 @@ const Roadmap = sequelize.define('Roadmap', {
     type: DataTypes.UUID,
     allowNull: false
   },
+  status: {
+    type: DataTypes.STRING, // 'active', 'completed', 'archived'
+    defaultValue: 'active'
+  },
+
+  // Additional platform fields
   title: {
     type: DataTypes.STRING,
-    allowNull: false
+    defaultValue: 'Preparation Roadmap'
   },
   targetDeadline: {
     type: DataTypes.DATE,
-    allowNull: false
+    allowNull: true
   },
   progressPercentage: {
     type: DataTypes.INTEGER,
     defaultValue: 0
-  },
-  status: {
-    type: DataTypes.STRING, // 'active', 'completed', 'archived'
-    defaultValue: 'active'
   }
 }, {
   tableName: 'roadmaps',
-  timestamps: true
+  timestamps: true,
+  indexes: [
+    { fields: ['userId'] },
+    { fields: ['opportunityId'] },
+    { fields: ['status'] }
+  ]
 });
 
 module.exports = Roadmap;

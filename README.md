@@ -125,17 +125,31 @@ cd ../client && npm install
 
 ---
 
-### 4. Initialize Database & Seed Demo Data
+---
 
-OpportunityX includes ~30 realistic, clearly labeled demonstration opportunities across three sample feeds:
-- `server/src/feeds/sample-hackathons.json`
-- `server/src/feeds/sample-competitions.xml`
-- `server/src/feeds/sample-workshops.json`
+### 4. Database Creation, Migrations & Seeding
 
-Run the seeder from `server/`:
+OpportunityX includes repeatable migrations and seed scripts for the complete relational schema.
+
+#### Available Database Commands:
+| Task | Root Command | Server Command | Description |
+|---|---|---|---|
+| **Create Database** | `npm run db:create` | `npm run db:create --prefix server` | Ensures PostgreSQL databases exist (`opportunityx` & `opportunityx_test`) |
+| **Run Migrations** | `npm run db:migrate` | `npm run db:migrate --prefix server` | Runs all pending migrations tracking in `sequelize_meta` |
+| **Undo Last Migration**| `npm run db:migrate:undo` | `npm run db:migrate:undo --prefix server`| Rolls back the most recently executed migration |
+| **Reset Schema** | `npm run db:reset` | `npm run db:reset --prefix server` | Re-runs all migrations from clean public schema |
+| **Seed Demo Data** | `npm run db:seed` | `npm run db:seed --prefix server` | Ingests ~30 opportunities and seeds demo users/workflows |
+
+#### Step-by-Step Setup:
 ```bash
-npm run db:seed --prefix server
-# Or: cd server && npm run db:seed
+# 1. Create database instances (if not already created)
+npm run db:create
+
+# 2. Run all 10 schema migrations
+npm run db:migrate
+
+# 3. Seed demo accounts, ~30 varied opportunities, roadmaps, and peer requests
+npm run db:seed
 ```
 
 #### Demo Credentials:
@@ -143,6 +157,18 @@ npm run db:seed --prefix server
 |---|---|---|---|
 | **Demo Student** | `alex.chen@university.edu` | `StudentPass123!` | Undergraduate student (CS, Berkeley) with skills, saved opportunities & active roadmap |
 | **Curator Admin** | `admin@opportunityx.edu` | `AdminPass123!` | Platform administrator with access to `/admin` Data Health Hub |
+
+#### Seeded Demo Dataset & Data Quality Simulation:
+The ~30 demo listings are ingested across three local feeds:
+- `server/src/feeds/sample-hackathons.json` (Collegiate hackathons)
+- `server/src/feeds/sample-competitions.xml` (Competitions & fellowships via XML parser)
+- `server/src/feeds/sample-workshops.json` (Workshops & research opportunities)
+
+**Data Quality Test Records Included:**
+- `hack-009` & `work-209`: Deliberately expired opportunities to demonstrate deadline-passed detection.
+- `hack-010`: Intentional duplicate entry to test deduplication fingerprinting.
+- `work-210`: Incomplete sample entry missing critical fields to demonstrate auditor flags and quarantine isolation.
+- All seeded demo listings are identified with `[DEMO / SAMPLE LISTING]` notices and never represent verified live registrations.
 
 ---
 
