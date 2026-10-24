@@ -1,23 +1,30 @@
-const { PeerMatch, User, Profile, SavedOpportunity, Opportunity } = require('../models');
+const { MatchRequest, PeerMatch, User, StudentProfile, Profile, SavedOpportunity, Opportunity } = require('../models');
 const { Op } = require('sequelize');
 
 /**
- * Discover peers interested in the same opportunity who gave explicit consent
+ * Discover peers interested in an opportunity who gave explicit consent
+ * (GET /api/peers/matches?opportunityId=...)
  */
-const getOpportunityPeers = async (req, res, next) => {
+const getPeerMatches = async (req, res, next) => {
   try {
-    const { opportunityId } = req.params;
-    const currentProfile = req.user.profile;
+    const opportunityId = req.query.opportunityId || req.params.opportunityId;
 
-    if (!currentProfile || !currentProfile.isPublicForMatching) {
-      return res.json({
+    if (!opportunityId) {
+      return res.status(400).json({ error: 'opportunityId query parameter is required.' });
+    }
+
+    const currentProfile = req.user.profile;
+    const hasConsent = currentProfile && (currentProfile.peerMatchingConsent || currentProfile.isPublicForMatching);
+
+    if (!hasConsent) {
+      return res.status(403).json({
         consentRequired: true,
-        message: 'You must enable Peer Collaboration Consent in your profile to discover other students.',
+        error: 'Peer matching consent required. You must enable peer matching in your profile to discover other students.',
         peers: []
       });
     }
 
-    // Find other students who saved this opportunity
+    // Find students who saved this opportunity or are public for matching
     const savedList = await SavedOpportunity.findAll({
       where: {
         opportunityId,
@@ -28,33 +35,47 @@ const getOpportunityPeers = async (req, res, next) => {
 
     const candidateUserIds = savedList.map(s => s.userId);
 
-    // Filter candidate profiles who opted-in with explicit consent
-    const publicProfiles = await Profile.findAll({
-      where: {
-        userId: { [Op.in]: candidateUserIds.length > 0 ? candidateUserIds : ['00000000-0000-0000-0000-000000000000'] },
-        isPublicForMatching: true
-      },
+    // Query profiles with explicit consent
+    const profileWhere = {
+      userId: { [Op.ne]: req.user.id },
+      [Op.or]: [
+        { peerMatchingConsent: true },
+        { isPublicForMatching: true }
+      ]
+    };
+
+    if (candidateUserIds.length > 0) {
+      profileWhere.userId = {
+        [Op.and]: [
+          { [Op.ne]: req.user.id },
+          { [Op.in]: candidateUserIds }
+        ]
+      };
+    }
+
+    const publicProfiles = await StudentProfile.findAll({
+      where: profileWhere,
       include: [{
         model: User,
         as: 'user',
-        attributes: ['id', 'email']
+        attributes: ['id', 'name', 'email']
       }]
     });
 
-    // Check existing match requests between current user and these candidates
-    const existingMatches = await PeerMatch.findAll({
+    // Check existing match requests between current user and candidate peers
+    const existingMatches = await MatchRequest.findAll({
       where: {
         opportunityId,
         [Op.or]: [
           { requesterId: req.user.id },
-          { receiverId: req.user.id }
+          { recipientId: req.user.id }
         ]
       }
     });
 
     const matchStatusMap = new Map();
     existingMatches.forEach(m => {
-      const otherId = m.requesterId === req.user.id ? m.receiverId : m.requesterId;
+      const otherId = m.requesterId === req.user.id ? m.recipientId : m.requesterId;
       matchStatusMap.set(otherId, {
         matchId: m.id,
         status: m.status,
@@ -73,7 +94,8 @@ const getOpportunityPeers = async (req, res, next) => {
 
       return {
         userId: p.userId,
-        fullName: p.fullName,
+        name: p.user?.name || p.fullName,
+        fullName: p.fullName || p.user?.name,
         educationLevel: p.educationLevel,
         university: p.university,
         major: p.major,
@@ -99,62 +121,124 @@ const getOpportunityPeers = async (req, res, next) => {
 };
 
 /**
- * Send a collaboration invite to a peer
+ * Send a collaboration invite to a peer (POST /api/peers/requests)
  */
 const sendPeerRequest = async (req, res, next) => {
   try {
-    const { opportunityId, receiverId, message, contactPreference, contactDetail } = req.body;
+    const {
+      opportunityId,
+      recipientId,
+      receiverId,
+      message,
+      contactPreference,
+      contactDetail
+    } = req.body;
 
-    if (!opportunityId || !receiverId) {
-      return res.status(400).json({ error: 'opportunityId and receiverId are required.' });
+    const targetUserId = recipientId || receiverId;
+
+    if (!opportunityId || !targetUserId) {
+      return res.status(400).json({ error: 'opportunityId and recipientId are required.' });
     }
 
-    if (receiverId === req.user.id) {
+    if (targetUserId === req.user.id) {
       return res.status(400).json({ error: 'You cannot send a collaboration request to yourself.' });
     }
 
     // Verify current user has consent enabled
     const myProfile = req.user.profile;
-    if (!myProfile || !myProfile.isPublicForMatching) {
+    const myConsent = myProfile && (myProfile.peerMatchingConsent || myProfile.isPublicForMatching);
+    if (!myConsent) {
       return res.status(403).json({ error: 'You must enable Peer Collaboration Consent in your profile first.' });
     }
 
-    // Verify receiver has consent enabled
-    const receiverProfile = await Profile.findOne({
-      where: { userId: receiverId, isPublicForMatching: true }
+    // Verify recipient exists and has consent enabled
+    const targetProfile = await StudentProfile.findOne({
+      where: {
+        userId: targetUserId,
+        [Op.or]: [
+          { peerMatchingConsent: true },
+          { isPublicForMatching: true }
+        ]
+      }
     });
-    if (!receiverProfile) {
+
+    if (!targetProfile) {
       return res.status(404).json({ error: 'Student is not available for peer matching.' });
     }
 
-    // Check if a request already exists
-    const existing = await PeerMatch.findOne({
+    // Check if a request already exists between these users for this opportunity
+    const existing = await MatchRequest.findOne({
       where: {
         opportunityId,
         [Op.or]: [
-          { requesterId: req.user.id, receiverId },
-          { requesterId: receiverId, receiverId: req.user.id }
+          { requesterId: req.user.id, recipientId: targetUserId },
+          { requesterId: targetUserId, recipientId: req.user.id }
         ]
       }
     });
 
     if (existing) {
-      return res.status(409).json({ error: 'A collaboration request already exists with this peer.', match: existing });
+      return res.status(409).json({
+        error: 'A collaboration request already exists with this peer.',
+        match: existing,
+        request: existing
+      });
     }
 
-    const match = await PeerMatch.create({
+    const match = await MatchRequest.create({
       opportunityId,
       requesterId: req.user.id,
-      receiverId,
+      recipientId: targetUserId,
       status: 'pending',
-      message: message || `Hi! I saw you are preparing for this opportunity and would love to collaborate.`,
+      message: message || 'Hi! I saw you are preparing for this opportunity and would love to collaborate.',
       contactPreference: contactPreference || 'email',
       contactDetail: contactDetail || req.user.email
     });
 
     res.status(201).json({
       message: 'Collaboration request sent successfully.',
-      match
+      match,
+      request: match
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Respond to a received collaboration request (PATCH /api/peers/requests/:id)
+ */
+const respondToPeerRequest = async (req, res, next) => {
+  try {
+    const matchId = req.params.id || req.params.matchId;
+    const { action, status, contactDetail } = req.body;
+
+    const resolvedStatus = status || action;
+    if (!resolvedStatus || !['accepted', 'declined'].includes(resolvedStatus)) {
+      return res.status(400).json({ error: "Action/status must be either 'accepted' or 'declined'." });
+    }
+
+    // Strictly enforce ownership: only the designated recipient can respond
+    const match = await MatchRequest.findOne({
+      where: {
+        id: matchId,
+        recipientId: req.user.id
+      }
+    });
+
+    if (!match) {
+      return res.status(404).json({ error: 'Collaboration request not found.' });
+    }
+
+    await match.update({
+      status: resolvedStatus,
+      contactDetail: resolvedStatus === 'accepted' ? (contactDetail || req.user.email) : match.contactDetail
+    });
+
+    res.json({
+      message: resolvedStatus === 'accepted' ? 'Collaboration accepted! Contact shared.' : 'Collaboration request declined.',
+      match,
+      request: match
     });
   } catch (err) {
     next(err);
@@ -166,29 +250,29 @@ const sendPeerRequest = async (req, res, next) => {
  */
 const getMyPeerMatches = async (req, res, next) => {
   try {
-    const received = await PeerMatch.findAll({
-      where: { receiverId: req.user.id },
+    const received = await MatchRequest.findAll({
+      where: { recipientId: req.user.id },
       include: [
         { model: Opportunity, as: 'opportunity' },
         {
           model: User,
           as: 'requester',
-          attributes: ['id', 'email'],
-          include: [{ model: Profile, as: 'profile' }]
+          attributes: ['id', 'name', 'email'],
+          include: [{ model: StudentProfile, as: 'profile' }]
         }
       ],
       order: [['createdAt', 'DESC']]
     });
 
-    const sent = await PeerMatch.findAll({
+    const sent = await MatchRequest.findAll({
       where: { requesterId: req.user.id },
       include: [
         { model: Opportunity, as: 'opportunity' },
         {
           model: User,
-          as: 'receiver',
-          attributes: ['id', 'email'],
-          include: [{ model: Profile, as: 'profile' }]
+          as: 'recipient',
+          attributes: ['id', 'name', 'email'],
+          include: [{ model: StudentProfile, as: 'profile' }]
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -203,43 +287,10 @@ const getMyPeerMatches = async (req, res, next) => {
   }
 };
 
-/**
- * Respond to a received collaboration request
- */
-const respondToPeerRequest = async (req, res, next) => {
-  try {
-    const { matchId } = req.params;
-    const { action, contactDetail } = req.body; // 'accepted' or 'declined'
-
-    if (!['accepted', 'declined'].includes(action)) {
-      return res.status(400).json({ error: "Action must be 'accepted' or 'declined'." });
-    }
-
-    const match = await PeerMatch.findOne({
-      where: { id: matchId, receiverId: req.user.id }
-    });
-
-    if (!match) {
-      return res.status(404).json({ error: 'Collaboration request not found.' });
-    }
-
-    await match.update({
-      status: action,
-      contactDetail: action === 'accepted' ? (contactDetail || req.user.email) : match.contactDetail
-    });
-
-    res.json({
-      message: action === 'accepted' ? 'Collaboration accepted! Contact shared.' : 'Collaboration request declined.',
-      match
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 module.exports = {
-  getOpportunityPeers,
+  getPeerMatches,
+  getOpportunityPeers: getPeerMatches,
   sendPeerRequest,
-  getMyPeerMatches,
-  respondToPeerRequest
+  respondToPeerRequest,
+  getMyPeerMatches
 };

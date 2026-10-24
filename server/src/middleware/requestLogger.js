@@ -49,7 +49,13 @@ function sanitize(obj, depth = 0) {
   return cleaned;
 }
 
+const crypto = require('crypto');
+
 function requestLogger(req, res, next) {
+  // Attach or reuse request ID
+  req.id = req.headers['x-request-id'] || crypto.randomUUID();
+  res.setHeader('X-Request-Id', req.id);
+
   const startTime = Date.now();
   const { method, originalUrl } = req;
 
@@ -60,7 +66,7 @@ function requestLogger(req, res, next) {
     const statusColor = statusCode >= 500 ? '\x1b[31m' : statusCode >= 400 ? '\x1b[33m' : '\x1b[32m';
     const resetColor = '\x1b[0m';
 
-    const logLine = `[HTTP] ${method} ${originalUrl} ${statusColor}${statusCode}${resetColor} - ${duration}ms`;
+    const logLine = `[HTTP] [${req.id}] ${method} ${originalUrl} ${statusColor}${statusCode}${resetColor} - ${duration}ms`;
 
     // Only log query / body metadata if present, and strictly sanitized
     if (process.env.NODE_ENV !== 'production' && req.body && Object.keys(req.body).length > 0) {

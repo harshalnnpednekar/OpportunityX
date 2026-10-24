@@ -1,13 +1,18 @@
-const { Profile } = require('../models');
+const { Profile, User } = require('../models');
 
 /**
  * Get profile for logged-in user
  */
 const getProfile = async (req, res, next) => {
   try {
-    const profile = await Profile.findOne({ where: { userId: req.user.id } });
+    let profile = await Profile.findOne({ where: { userId: req.user.id } });
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found.' });
+      profile = await Profile.create({
+        userId: req.user.id,
+        fullName: req.user.name || '',
+        skills: [],
+        interests: []
+      });
     }
     res.json({ profile });
   } catch (err) {
@@ -16,16 +21,22 @@ const getProfile = async (req, res, next) => {
 };
 
 /**
- * Update profile for logged-in user
+ * Update profile for logged-in user (supports PATCH and PUT)
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const profile = await Profile.findOne({ where: { userId: req.user.id } });
+    let profile = await Profile.findOne({ where: { userId: req.user.id } });
     if (!profile) {
-      return res.status(404).json({ error: 'Profile not found.' });
+      profile = await Profile.create({
+        userId: req.user.id,
+        fullName: req.user.name || '',
+        skills: [],
+        interests: []
+      });
     }
 
     const {
+      name,
       fullName,
       bio,
       educationLevel,
@@ -35,15 +46,34 @@ const updateProfile = async (req, res, next) => {
       country,
       skills,
       interests,
+      budgetMax,
+      availability,
+      preferredFormat,
       formatPreference,
+      preferredLocation,
+      experienceLevel,
+      peerMatchingConsent,
       isPublicForMatching,
       matchingBio,
       githubUrl,
       portfolioUrl
     } = req.body;
 
+    const resolvedName = name !== undefined ? name : fullName;
+    if (resolvedName !== undefined && resolvedName !== req.user.name) {
+      await User.update({ name: resolvedName }, { where: { id: req.user.id } });
+    }
+
+    const consent = peerMatchingConsent !== undefined
+      ? Boolean(peerMatchingConsent)
+      : (isPublicForMatching !== undefined ? Boolean(isPublicForMatching) : profile.peerMatchingConsent);
+
+    const format = preferredFormat !== undefined
+      ? preferredFormat
+      : (formatPreference !== undefined ? formatPreference : profile.preferredFormat);
+
     await profile.update({
-      fullName: fullName !== undefined ? fullName : profile.fullName,
+      fullName: resolvedName !== undefined ? resolvedName : profile.fullName,
       bio: bio !== undefined ? bio : profile.bio,
       educationLevel: educationLevel !== undefined ? educationLevel : profile.educationLevel,
       university: university !== undefined ? university : profile.university,
@@ -52,8 +82,14 @@ const updateProfile = async (req, res, next) => {
       country: country !== undefined ? country : profile.country,
       skills: Array.isArray(skills) ? skills : profile.skills,
       interests: Array.isArray(interests) ? interests : profile.interests,
-      formatPreference: formatPreference !== undefined ? formatPreference : profile.formatPreference,
-      isPublicForMatching: isPublicForMatching !== undefined ? Boolean(isPublicForMatching) : profile.isPublicForMatching,
+      budgetMax: budgetMax !== undefined ? parseFloat(budgetMax) : profile.budgetMax,
+      availability: availability !== undefined ? availability : profile.availability,
+      preferredFormat: format,
+      formatPreference: format,
+      preferredLocation: preferredLocation !== undefined ? preferredLocation : profile.preferredLocation,
+      experienceLevel: experienceLevel !== undefined ? experienceLevel : profile.experienceLevel,
+      peerMatchingConsent: consent,
+      isPublicForMatching: consent,
       matchingBio: matchingBio !== undefined ? matchingBio : profile.matchingBio,
       githubUrl: githubUrl !== undefined ? githubUrl : profile.githubUrl,
       portfolioUrl: portfolioUrl !== undefined ? portfolioUrl : profile.portfolioUrl

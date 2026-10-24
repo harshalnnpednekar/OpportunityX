@@ -6,7 +6,7 @@ const RoadmapGenerator = require('../services/roadmapGenerator');
  */
 const generateRoadmap = async (req, res, next) => {
   try {
-    const { opportunityId } = req.body;
+    const opportunityId = req.body.opportunityId || req.params.id;
 
     if (!opportunityId) {
       return res.status(400).json({ error: 'opportunityId is required.' });
@@ -50,7 +50,8 @@ const generateRoadmap = async (req, res, next) => {
         description: t.description,
         dueDate: t.dueDate,
         isCompleted: false,
-        orderIndex: t.orderIndex
+        orderIndex: t.orderIndex,
+        sortOrder: t.orderIndex
       })
     );
 
@@ -123,11 +124,12 @@ const getRoadmapById = async (req, res, next) => {
 };
 
 /**
- * Toggle task completion status
+ * Update task completion status (PATCH /api/roadmaps/:id/tasks/:taskId)
  */
-const toggleTaskCompletion = async (req, res, next) => {
+const updateRoadmapTask = async (req, res, next) => {
   try {
-    const { roadmapId, taskId } = req.params;
+    const roadmapId = req.params.id || req.params.roadmapId;
+    const { taskId } = req.params;
 
     const roadmap = await Roadmap.findOne({
       where: { id: roadmapId, userId: req.user.id }
@@ -145,16 +147,21 @@ const toggleTaskCompletion = async (req, res, next) => {
       return res.status(404).json({ error: 'Task not found in this roadmap.' });
     }
 
-    const newCompleted = !task.isCompleted;
+    const isCompleted = req.body.isCompleted !== undefined
+      ? Boolean(req.body.isCompleted)
+      : !task.isCompleted;
+
+    const completedAt = isCompleted ? (req.body.completedAt || new Date()) : null;
+
     await task.update({
-      isCompleted: newCompleted,
-      completedAt: newCompleted ? new Date() : null
+      isCompleted,
+      completedAt
     });
 
     // Recalculate progress percentage
     const allTasks = await RoadmapTask.findAll({ where: { roadmapId } });
     const completedCount = allTasks.filter(t => t.isCompleted).length;
-    const progress = Math.round((completedCount / allTasks.length) * 100);
+    const progress = allTasks.length > 0 ? Math.round((completedCount / allTasks.length) * 100) : 0;
 
     await roadmap.update({
       progressPercentage: progress,
@@ -162,7 +169,7 @@ const toggleTaskCompletion = async (req, res, next) => {
     });
 
     res.json({
-      message: newCompleted ? 'Task marked complete.' : 'Task marked incomplete.',
+      message: isCompleted ? 'Task marked complete.' : 'Task marked incomplete.',
       task,
       progressPercentage: progress,
       roadmapStatus: roadmap.status
@@ -197,6 +204,7 @@ module.exports = {
   generateRoadmap,
   getUserRoadmaps,
   getRoadmapById,
-  toggleTaskCompletion,
+  updateRoadmapTask,
+  toggleTaskCompletion: updateRoadmapTask,
   deleteRoadmap
 };

@@ -14,7 +14,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Log error without sensitive fields
-  console.error(`[Error] ${req.method} ${req.originalUrl} (${statusCode}):`, {
+  console.error(`[Error] [${req.id || 'no-req-id'}] ${req.method} ${req.originalUrl} (${statusCode}):`, {
     message: err.message,
     ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
   });

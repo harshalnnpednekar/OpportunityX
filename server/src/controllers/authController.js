@@ -6,15 +6,22 @@ const { generateToken } = require('../middleware/auth');
  */
 const register = async (req, res, next) => {
   try {
-    const { email, password, fullName, educationLevel, university, major, skills, interests } = req.body;
+    const {
+      email,
+      password,
+      name,
+      fullName,
+      educationLevel,
+      university,
+      major,
+      skills,
+      interests,
+      preferredFormat,
+      experienceLevel,
+      peerMatchingConsent
+    } = req.body;
 
-    if (!email || !password || !fullName) {
-      return res.status(400).json({ error: 'Email, password, and full name are required.' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
-    }
+    const displayName = (name || fullName || '').trim();
 
     const existing = await User.findOne({ where: { email: email.toLowerCase().trim() } });
     if (existing) {
@@ -22,6 +29,7 @@ const register = async (req, res, next) => {
     }
 
     const user = await User.create({
+      name: displayName,
       email: email.toLowerCase().trim(),
       passwordHash: password,
       role: 'student'
@@ -29,12 +37,17 @@ const register = async (req, res, next) => {
 
     const profile = await Profile.create({
       userId: user.id,
-      fullName: fullName.trim(),
+      fullName: displayName,
       educationLevel: educationLevel || 'undergraduate',
       university: university || '',
       major: major || '',
       skills: Array.isArray(skills) ? skills : [],
-      interests: Array.isArray(interests) ? interests : []
+      interests: Array.isArray(interests) ? interests : [],
+      preferredFormat: preferredFormat || 'all',
+      formatPreference: preferredFormat || 'all',
+      experienceLevel: experienceLevel || 'beginner',
+      peerMatchingConsent: Boolean(peerMatchingConsent),
+      isPublicForMatching: Boolean(peerMatchingConsent)
     });
 
     const token = generateToken(user);
@@ -44,6 +57,7 @@ const register = async (req, res, next) => {
       token,
       user: {
         id: user.id,
+        name: user.name,
         email: user.email,
         role: user.role,
         profile
@@ -60,10 +74,6 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
-    }
 
     const user = await User.findOne({
       where: { email: email.toLowerCase().trim() },
@@ -86,6 +96,7 @@ const login = async (req, res, next) => {
       token,
       user: {
         id: user.id,
+        name: user.name,
         email: user.email,
         role: user.role,
         profile: user.profile
@@ -97,6 +108,15 @@ const login = async (req, res, next) => {
 };
 
 /**
+ * Log out
+ */
+const logout = async (req, res) => {
+  res.json({
+    message: 'Logged out successfully.'
+  });
+};
+
+/**
  * Get currently authenticated user details
  */
 const getMe = async (req, res, next) => {
@@ -104,6 +124,7 @@ const getMe = async (req, res, next) => {
     res.json({
       user: {
         id: req.user.id,
+        name: req.user.name,
         email: req.user.email,
         role: req.user.role,
         profile: req.user.profile
@@ -117,5 +138,6 @@ const getMe = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  logout,
   getMe
 };
