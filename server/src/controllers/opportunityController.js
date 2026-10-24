@@ -572,10 +572,246 @@ const getRecommendations = async (req, res, next) => {
   }
 };
 
+/**
+ * Create a new opportunity (POST /api/opportunities) - Admin Only
+ */
+const createOpportunity = async (req, res, next) => {
+  try {
+    const {
+      title,
+      organizer,
+      organization,
+      description,
+      category = 'general',
+      eventType = 'hackathon',
+      opportunityType,
+      theme = '',
+      startDate,
+      endDate,
+      deadline,
+      applicationDeadline,
+      format = 'virtual',
+      deliveryFormat,
+      location = 'Online',
+      costAmount = 0.00,
+      currency = 'USD',
+      teamMin = 1,
+      teamMax = 4,
+      eligibilityText = '',
+      requiredSkills = [],
+      beginnerFriendly = false,
+      lowCost = true,
+      sustainabilityFocused = false,
+      sourceFeed = 'manual-admin',
+      sourceUrl,
+      websiteUrl,
+      applicationUrl,
+      status = 'active'
+    } = req.body;
+
+    if (!title || !description || (!organizer && !organization)) {
+      return res.status(400).json({ error: 'Title, description, and organizer are required.' });
+    }
+
+    const resolvedDeadline = applicationDeadline || deadline || null;
+    const resolvedStartDate = startDate || null;
+    const resolvedEndDate = endDate || null;
+    const resolvedFormat = deliveryFormat || format || 'virtual';
+    const resolvedOrg = organization || organizer;
+
+    const opp = await Opportunity.create({
+      title: title.trim(),
+      organizer: organizer ? organizer.trim() : resolvedOrg,
+      organization: resolvedOrg,
+      description: description.trim(),
+      category: category || 'general',
+      eventType: eventType || 'hackathon',
+      opportunityType: opportunityType || eventType || 'hackathon',
+      theme: theme || '',
+      startDate: resolvedStartDate,
+      eventStartDate: resolvedStartDate,
+      endDate: resolvedEndDate,
+      eventEndDate: resolvedEndDate,
+      deadline: resolvedDeadline,
+      applicationDeadline: resolvedDeadline,
+      format: resolvedFormat,
+      deliveryFormat: resolvedFormat,
+      location: location || 'Online',
+      costAmount: parseFloat(costAmount) || 0.00,
+      currency: currency || 'USD',
+      teamMin: parseInt(teamMin, 10) || 1,
+      teamMax: parseInt(teamMax, 10) || 4,
+      eligibilityText: eligibilityText || '',
+      requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : [],
+      beginnerFriendly: Boolean(beginnerFriendly),
+      lowCost: Boolean(lowCost),
+      sustainabilityFocused: Boolean(sustainabilityFocused),
+      sourceFeed: sourceFeed || 'manual-admin',
+      sourceName: sourceFeed || 'manual-admin',
+      sourceUrl: sourceUrl || websiteUrl || applicationUrl || '',
+      websiteUrl: websiteUrl || sourceUrl || applicationUrl || '',
+      applicationUrl: applicationUrl || websiteUrl || sourceUrl || '',
+      status: status || 'active',
+      isDuplicate: false,
+      lastVerifiedAt: new Date()
+    });
+
+    const trust = TrustSignalEngine.evaluateTrustSignal(opp.toJSON());
+    await opp.update({
+      trustScore: trust.trustScore,
+      trustSignal: trust
+    });
+
+    res.status(201).json({
+      message: 'Opportunity created successfully.',
+      opportunity: opp
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Update an existing opportunity (PUT/PATCH /api/opportunities/:id) - Admin Only
+ */
+const updateOpportunity = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const opp = await Opportunity.findByPk(id);
+
+    if (!opp) {
+      return res.status(404).json({ error: 'Opportunity not found.' });
+    }
+
+    const {
+      title,
+      organizer,
+      organization,
+      description,
+      category,
+      eventType,
+      opportunityType,
+      theme,
+      startDate,
+      endDate,
+      deadline,
+      applicationDeadline,
+      format,
+      deliveryFormat,
+      location,
+      costAmount,
+      currency,
+      teamMin,
+      teamMax,
+      eligibilityText,
+      requiredSkills,
+      beginnerFriendly,
+      lowCost,
+      sustainabilityFocused,
+      sourceFeed,
+      sourceUrl,
+      websiteUrl,
+      applicationUrl,
+      status
+    } = req.body;
+
+    const updates = {};
+    if (title !== undefined) updates.title = title.trim();
+    if (organizer !== undefined) updates.organizer = organizer.trim();
+    if (organization !== undefined) updates.organization = organization.trim();
+    if (description !== undefined) updates.description = description.trim();
+    if (category !== undefined) updates.category = category;
+    if (eventType !== undefined) {
+      updates.eventType = eventType;
+      updates.opportunityType = eventType;
+    }
+    if (opportunityType !== undefined) updates.opportunityType = opportunityType;
+    if (theme !== undefined) updates.theme = theme;
+    if (startDate !== undefined) {
+      updates.startDate = startDate;
+      updates.eventStartDate = startDate;
+    }
+    if (endDate !== undefined) {
+      updates.endDate = endDate;
+      updates.eventEndDate = endDate;
+    }
+    if (deadline !== undefined || applicationDeadline !== undefined) {
+      const d = applicationDeadline !== undefined ? applicationDeadline : deadline;
+      updates.deadline = d;
+      updates.applicationDeadline = d;
+    }
+    if (format !== undefined || deliveryFormat !== undefined) {
+      const f = deliveryFormat !== undefined ? deliveryFormat : format;
+      updates.format = f;
+      updates.deliveryFormat = f;
+    }
+    if (location !== undefined) updates.location = location;
+    if (costAmount !== undefined) updates.costAmount = parseFloat(costAmount);
+    if (currency !== undefined) updates.currency = currency;
+    if (teamMin !== undefined) updates.teamMin = parseInt(teamMin, 10);
+    if (teamMax !== undefined) updates.teamMax = parseInt(teamMax, 10);
+    if (eligibilityText !== undefined) updates.eligibilityText = eligibilityText;
+    if (requiredSkills !== undefined) updates.requiredSkills = Array.isArray(requiredSkills) ? requiredSkills : [];
+    if (beginnerFriendly !== undefined) updates.beginnerFriendly = Boolean(beginnerFriendly);
+    if (lowCost !== undefined) updates.lowCost = Boolean(lowCost);
+    if (sustainabilityFocused !== undefined) updates.sustainabilityFocused = Boolean(sustainabilityFocused);
+    if (sourceFeed !== undefined) {
+      updates.sourceFeed = sourceFeed;
+      updates.sourceName = sourceFeed;
+    }
+    if (sourceUrl !== undefined) updates.sourceUrl = sourceUrl;
+    if (websiteUrl !== undefined) updates.websiteUrl = websiteUrl;
+    if (applicationUrl !== undefined) updates.applicationUrl = applicationUrl;
+    if (status !== undefined) updates.status = status;
+
+    updates.lastVerifiedAt = new Date();
+
+    await opp.update(updates);
+
+    const trust = TrustSignalEngine.evaluateTrustSignal(opp.toJSON());
+    await opp.update({
+      trustScore: trust.trustScore,
+      trustSignal: trust
+    });
+
+    res.json({
+      message: 'Opportunity updated successfully.',
+      opportunity: opp
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Delete an opportunity (DELETE /api/opportunities/:id) - Admin Only
+ */
+const deleteOpportunity = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const opp = await Opportunity.findByPk(id);
+
+    if (!opp) {
+      return res.status(404).json({ error: 'Opportunity not found.' });
+    }
+
+    await opp.destroy();
+
+    res.json({
+      message: 'Opportunity deleted successfully.'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getOpportunities,
   getOpportunityDetail,
   getOpportunityEligibility,
+  createOpportunity,
+  updateOpportunity,
+  deleteOpportunity,
   saveOpportunityById,
   unsaveOpportunityById,
   createOpportunityRoadmap,

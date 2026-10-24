@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AccessDeniedPage from '../pages/AccessDeniedPage';
 
 export default function ProtectedRoute({ children, requireAdmin = false }) {
   const { isAuthenticated, isAdmin, isLoading } = useAuth();
@@ -19,7 +20,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
   }
 
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/" replace />;
+    return <AccessDeniedPage />;
   }
 
   return children;

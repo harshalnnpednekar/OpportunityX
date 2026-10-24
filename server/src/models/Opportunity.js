@@ -244,6 +244,16 @@ const Opportunity = sequelize.define('Opportunity', {
 
       if (opp.normalizedFingerprint && !opp.fingerprint) opp.fingerprint = opp.normalizedFingerprint;
       if (opp.fingerprint && !opp.normalizedFingerprint) opp.normalizedFingerprint = opp.fingerprint;
+      if (!opp.normalizedFingerprint) {
+        const cleanTitle = (opp.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanOrg = (opp.organizer || opp.organization || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        opp.normalizedFingerprint = `${cleanOrg}_${cleanTitle}_${Date.now()}`;
+        opp.fingerprint = opp.normalizedFingerprint;
+      }
+
+      if (!opp.applicationUrl) {
+        opp.applicationUrl = opp.sourceUrl || opp.websiteUrl || 'https://opportunityx.edu';
+      }
 
       if (opp.sourceRecordId && !opp.externalId) opp.externalId = opp.sourceRecordId;
       if (opp.externalId && !opp.sourceRecordId) opp.sourceRecordId = opp.externalId;

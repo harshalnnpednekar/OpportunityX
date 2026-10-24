@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Compass, CheckSquare, Calendar, Trash2, ArrowRight, CheckCircle2, Clock, Award } from 'lucide-react';
+import { Compass, CheckSquare, Calendar, Trash2, ArrowRight, CheckCircle2, Clock, Award, Plus, X } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 
@@ -9,6 +9,9 @@ export default function RoadmapsPage() {
   const [roadmaps, setRoadmaps] = useState([]);
   const [selectedRoadmapId, setSelectedRoadmapId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskPhase, setNewTaskPhase] = useState('Sprint Execution');
+  const [isAddingTask, setIsAddingTask] = useState(false);
 
   const loadRoadmaps = async () => {
     setLoading(true);
@@ -68,6 +71,49 @@ export default function RoadmapsPage() {
       }
     } catch (err) {
       addToast('Failed to delete roadmap', 'error');
+    }
+  };
+
+  const handleAddTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim() || !selectedRoadmap) return;
+    try {
+      const res = await api.addRoadmapTask(selectedRoadmap.id, {
+        title: newTaskTitle.trim(),
+        phase: newTaskPhase
+      });
+      setRoadmaps(prev => prev.map(rm => {
+        if (rm.id !== selectedRoadmap.id) return rm;
+        return {
+          ...rm,
+          progressPercentage: res.progressPercentage,
+          tasks: [...(rm.tasks || []), res.task]
+        };
+      }));
+      setNewTaskTitle('');
+      setIsAddingTask(false);
+      addToast('Custom milestone task added!', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to add task', 'error');
+    }
+  };
+
+  const handleDeleteTask = async (roadmapId, taskId) => {
+    if (!window.confirm('Delete this milestone task?')) return;
+    try {
+      const res = await api.deleteRoadmapTask(roadmapId, taskId);
+      setRoadmaps(prev => prev.map(rm => {
+        if (rm.id !== roadmapId) return rm;
+        const updatedTasks = (rm.tasks || []).filter(t => t.id !== taskId);
+        return {
+          ...rm,
+          progressPercentage: res.progressPercentage,
+          tasks: updatedTasks
+        };
+      }));
+      addToast('Milestone removed from roadmap', 'info');
+    } catch (err) {
+      addToast(err.message || 'Failed to remove task', 'error');
     }
   };
 
@@ -300,12 +346,95 @@ export default function RoadmapsPage() {
                                 </div>
                               )}
                             </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTask(selectedRoadmap.id, task.id)}
+                              className="btn btn-outline btn-sm"
+                              style={{ color: '#DC2626', borderColor: 'transparent', padding: '0.25rem 0.4rem' }}
+                              title="Delete milestone"
+                              aria-label={`Delete milestone "${task.title}"`}
+                            >
+                              <Trash2 size={13} />
+                            </button>
                           </div>
                         ))}
                       </div>
                     </div>
                   );
                 })}
+
+                {/* Add Custom Task Form */}
+                <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle)' }}>
+                  {!isAddingTask ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingTask(true)}
+                      className="btn btn-outline btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                    >
+                      <Plus size={14} />
+                      <span>Add Custom Milestone Task</span>
+                    </button>
+                  ) : (
+                    <form onSubmit={handleAddTask} style={{ backgroundColor: 'var(--bg-surface-subtle)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>Add Custom Preparation Milestone</h4>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingTask(false)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-tertiary)' }}
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Milestone title (e.g. Schedule team prep session)"
+                          value={newTaskTitle}
+                          onChange={(e) => setNewTaskTitle(e.target.value)}
+                          required
+                        />
+                        <select
+                          className="form-select"
+                          value={newTaskPhase}
+                          onChange={(e) => setNewTaskPhase(e.target.value)}
+                        >
+                          {Object.keys(groupedTasks).length > 0 ? (
+                            Object.keys(groupedTasks).map(p => <option key={p} value={p}>{p}</option>)
+                          ) : (
+                            <>
+                              <option value="Sprint Execution">Sprint Execution</option>
+                              <option value="Phase 1: Foundation & Eligibility">Phase 1: Foundation</option>
+                              <option value="Phase 2: Project Architecture">Phase 2: Project Architecture</option>
+                              <option value="Phase 3: Sprint Execution">Phase 3: Sprint Execution</option>
+                              <option value="Phase 4: Submission & Polish">Phase 4: Submission & Polish</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingTask(false)}
+                          className="btn btn-outline btn-sm"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary btn-sm"
+                        >
+                          Save Milestone
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               </div>
             </div>
           )}

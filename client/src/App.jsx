@@ -2,7 +2,6 @@ import React, { useState, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import DemoBanner from './components/DemoBanner';
 import NotificationDrawer from './components/NotificationDrawer';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -19,6 +18,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const SavedPage = lazy(() => import('./pages/SavedPage'));
 const RoadmapsPage = lazy(() => import('./pages/RoadmapsPage'));
 const PeerMatchingPage = lazy(() => import('./pages/PeerMatchingPage'));
+import AccessDeniedPage from './pages/AccessDeniedPage';
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
@@ -28,9 +28,6 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* Top Demo Simulation Banner */}
-      <DemoBanner />
-
       {/* Main Sticky Navbar with notification counter */}
       <Navbar
         onOpenNotifications={() => setNotificationDrawerOpen(true)}
@@ -114,6 +111,10 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Access Denied Route */}
+            <Route path="/access-denied" element={<AccessDeniedPage />} />
+            <Route path="/forbidden" element={<AccessDeniedPage />} />
 
             {/* Accessible 404 Fallback */}
             <Route path="*" element={<NotFoundPage />} />

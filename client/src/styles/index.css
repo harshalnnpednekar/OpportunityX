@@ -4,23 +4,23 @@
    ========================================================================== */
 
 :root {
-  /* Warm editorial surface palette */
-  --bg-page: #FAF8F5;
-  --bg-surface: #FFFFFF;
-  --bg-surface-subtle: #F5F1EB;
+  /* Clean modern surface palette (Slate & Crisp White) */
+  --bg-page: #F8FAFC;          /* Slate 50 clean background */
+  --bg-surface: #FFFFFF;       /* Pure white card surface */
+  --bg-surface-subtle: #F1F5F9;/* Slate 100 subtle surface */
   --bg-surface-elevated: #FFFFFF;
-  --bg-surface-muted: #EFEBE2;
-  --bg-surface-hover: #F2EDE4;
+  --bg-surface-muted: #E2E8F0;  /* Slate 200 */
+  --bg-surface-hover: #F8FAFC;
 
-  /* Typography / Inks (High Contrast & Readability) */
-  --ink-primary: #121826;      /* Deep Ink Navy */
-  --ink-secondary: #2E384D;    /* Slate Charcoal */
-  --ink-tertiary: #5E6A80;     /* Muted Editorial Grey */
-  --ink-on-dark: #FAF8F5;
+  /* Typography / Inks (Modern High-Contrast Slate) */
+  --ink-primary: #0F172A;      /* Slate 900 Deep Ink */
+  --ink-secondary: #334155;    /* Slate 700 Body text */
+  --ink-tertiary: #64748B;     /* Slate 500 Muted text */
+  --ink-on-dark: #FFFFFF;
 
-  /* Restrained Violet Brand Accent */
-  --accent-violet-50: #EEF0FF;
-  --accent-violet-100: #E0E4FF;
+  /* Refined Indigo / Violet Brand Accent */
+  --accent-violet-50: #EEF2FF;
+  --accent-violet-100: #E0E7FF;
   --accent-violet-500: #6366F1;
   --accent-violet-600: #4F46E5;
   --accent-violet-700: #4338CA;
@@ -31,38 +31,38 @@
   --teal-100: #CCFBF1;
   --teal-600: #0D9488;
   --teal-700: #0F766E;
-  --accent-teal: #0F766E;
+  --accent-teal: #0D9488;
 
   /* Amber Alert / Warning / Review Required */
   --amber-50: #FFFBEB;
   --amber-100: #FEF3C7;
   --amber-600: #D97706;
   --amber-700: #B45309;
-  --accent-amber: #B45309;
+  --accent-amber: #D97706;
 
   /* Crimson Ineligible / Expired / Disqualified */
   --crimson-50: #FEF2F2;
   --crimson-100: #FEE2E2;
   --crimson-600: #DC2626;
   --crimson-700: #B91C1C;
-  --accent-danger: #B91C1C;
+  --accent-danger: #DC2626;
 
-  /* Borders & Dividers */
-  --border-subtle: #E8E3D8;
-  --border-medium: #D5CFBE;
+  /* Crisp Borders & Dividers */
+  --border-subtle: #E2E8F0;    /* Slate 200 */
+  --border-medium: #CBD5E1;    /* Slate 300 */
   --border-focus: #4F46E5;
 
-  /* Shadows - Crisp, Restrained, Non-generic */
-  --shadow-sm: 0 1px 2px 0 rgba(18, 24, 38, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(18, 24, 38, 0.06), 0 2px 4px -2px rgba(18, 24, 38, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(18, 24, 38, 0.07), 0 4px 6px -4px rgba(18, 24, 38, 0.03);
-  --shadow-card: 0 1px 3px rgba(18, 24, 38, 0.05), 0 2px 8px -2px rgba(18, 24, 38, 0.04);
-  --shadow-card-hover: 0 8px 24px -4px rgba(18, 24, 38, 0.08), 0 2px 6px -1px rgba(18, 24, 38, 0.04);
+  /* Shadows - Crisp, Elevated, Modern */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+  --shadow-card-hover: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
 
-  /* Typography Stacks */
-  --font-serif: 'Fraunces', Georgia, serif;
+  /* Modern Sans-Serif Typography Stack */
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-serif: var(--font-sans); /* Standardize all headings on modern sans */
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
   /* Radii */
   --radius-xs: 4px;
@@ -70,6 +70,7 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+  --radius-2xl: 20px;
 
   /* Transitions */
   --transition-fast: 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -122,13 +123,16 @@ main {
 /* Typography Headings */
 h1, h2, h3, h4, h5, h6 {
   color: var(--ink-primary);
-  font-weight: 600;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.025em;
   line-height: 1.25;
 }
 
 .font-editorial {
-  font-family: var(--font-serif);
-  font-optical-sizing: auto;
+  font-family: var(--font-sans);
+  letter-spacing: -0.025em;
+  font-weight: 700;
 }
 
 p {

@@ -41,52 +41,52 @@ export default function LandingPage() {
 
   return (
     <div>
-      {/* Editorial Hero Section */}
+      {/* Modern Hero Section */}
       <section className="hero-section">
         <div className="container hero-grid">
           <div>
             <div className="hero-tag">
-              <Sparkles size={13} />
-              <span>Intelligent Student Opportunity Discovery</span>
+              <Sparkles size={14} />
+              <span>Curated Extracurricular Discovery</span>
             </div>
 
-            <h1 className="hero-title font-editorial">
-              Find opportunities that shape your craft, not your search luck.
+            <h1 className="hero-title">
+              Discover hackathons, grants, and fellowships that match your skills.
             </h1>
 
             <p className="hero-subtitle">
-              Consolidating collegiate hackathons, open science research grants, engineering fellowships, and design competitions into one clean, verified discovery catalog. Deterministic match scoring, independent eligibility checking, and structured preparation roadmaps.
+              Browse vetted collegiate opportunities with transparent match scoring, verified eligibility requirements, and personalized preparation roadmaps.
             </p>
 
-            {/* Functional Hero Search Bar */}
+            {/* Functional Modern Hero Search Bar */}
             <form onSubmit={handleSearchSubmit} className="hero-search-box" role="search" aria-label="Quick opportunity search">
-              <Search size={18} color="var(--ink-tertiary)" style={{ marginLeft: '0.5rem' }} aria-hidden="true" />
+              <Search size={18} color="var(--ink-tertiary)" style={{ marginLeft: '0.5rem', flexShrink: 0 }} aria-hidden="true" />
               <input
                 type="text"
                 className="hero-search-input"
-                placeholder="Search by tech stack (Python, React), topic (Climate, AI), or organizer..."
+                placeholder="Search by skill (Python, React), topic (AI, Climate), or host..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 aria-label="Search opportunity catalog"
               />
               <button type="submit" className="btn btn-primary btn-sm">
-                <span>Search Catalogue</span>
+                <span>Search</span>
                 <ArrowRight size={14} />
               </button>
             </form>
 
             {/* Category Shortcuts */}
             <div className="hero-category-shortcuts">
-              <span>Explore categories:</span>
+              <span>Quick browse:</span>
               <Link to="/explore?type=hackathon" className="shortcut-link">Hackathons</Link>
               <Link to="/explore?type=fellowship" className="shortcut-link">Fellowships</Link>
               <Link to="/explore?type=competition" className="shortcut-link">Competitions</Link>
-              <Link to="/explore?type=research" className="shortcut-link">Research Grants</Link>
-              <Link to="/explore?type=workshop" className="shortcut-link">Bootcamps</Link>
+              <Link to="/explore?type=research" className="shortcut-link">Research</Link>
+              <Link to="/explore?type=workshop" className="shortcut-link">Workshops</Link>
             </div>
           </div>
 
-          {/* Right Vector Illustration */}
+          {/* Right Live Interactive Preview */}
           <div>
             <OrbitIllustration />
           </div>
@@ -94,15 +94,15 @@ export default function LandingPage() {
       </section>
 
       {/* Core Architectural Tenets */}
-      <section style={{ padding: '4.5rem 0 3.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
+      <section style={{ padding: '4.5rem 0 3.5rem', borderBottom: '1px solid var(--border-subtle)', backgroundColor: '#FFFFFF' }}>
         <div className="container">
           <div className="section-header">
-            <span className="section-tag">Deterministic Engineering</span>
-            <h2 className="section-title font-editorial">
-              Built on transparent mathematics, not opaque AI guesswork.
+            <span className="section-tag">Platform Features</span>
+            <h2 className="section-title">
+              Clear criteria, zero black-box guesswork.
             </h2>
             <p>
-              Traditional discovery is plagued by dead links, expired events, and vague eligibility requirements. OpportunityX establishes an explainable standard for collegiate opportunities.
+              Traditional discovery is plagued by dead links, expired events, and vague requirements. OpportunityX gives you verified requirements, transparent scoring, and preparation runways.
             </p>
           </div>
 
@@ -111,9 +111,9 @@ export default function LandingPage() {
               <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(15, 118, 110, 0.08)' }}>
                 <ShieldCheck size={22} color="var(--accent-teal)" />
               </div>
-              <h3 className="font-editorial">Strict Zero-Inference Eligibility</h3>
+              <h3>Verified Eligibility Checks</h3>
               <p>
-                Relevance and eligibility are kept strictly separate. The engine never infers age from graduation year or location from citizenship. Clear checks explain exactly why an opportunity is eligible, needs review, or is disqualified.
+                Relevance and eligibility are kept strictly separate. Transparent checks explain exactly whether you are eligible, need review, or have explicit disqualifiers.
               </p>
             </div>
 
@@ -121,9 +121,9 @@ export default function LandingPage() {
               <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(79, 70, 229, 0.08)' }}>
                 <Zap size={22} color="var(--accent-violet-600)" />
               </div>
-              <h3 className="font-editorial">Explainable Match Scoring</h3>
+              <h3>Transparent Match Scoring</h3>
               <p>
-                Every match score (0–100%) comes with an auditable mathematical formula. Missing profile preferences trigger dynamic weight re-normalization, ensuring students are never unfairly penalized for omitted fields.
+                Every match score comes with an explainable breakdown of matched skills, topic overlap, and suggestions for preparing for application requirements.
               </p>
             </div>
 
@@ -131,9 +131,9 @@ export default function LandingPage() {
               <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(180, 83, 9, 0.08)' }}>
                 <CalendarCheck size={22} color="var(--accent-amber)" />
               </div>
-              <h3 className="font-editorial">4-Phase Sprint Roadmaps</h3>
+              <h3>Preparation Roadmaps</h3>
               <p>
-                Avoid last-minute rushes. Automatically generate tailored 4-phase milestone checklists spanning Discovery, Application, Preparation, and Final Sprint Execution with real-time completion tracking.
+                Avoid last-minute rushes. Automatically generate 4-phase milestone checklists spanning Team Setup, Prototype Sprint, and Final Submission buffers.
               </p>
             </div>
 
@@ -141,9 +141,9 @@ export default function LandingPage() {
               <div className="feature-icon-wrapper" style={{ backgroundColor: 'rgba(2, 132, 199, 0.08)' }}>
                 <Users size={22} color="#0284C7" />
               </div>
-              <h3 className="font-editorial">Consent-Based Peer Matching</h3>
+              <h3>Privacy-First Peer Matching</h3>
               <p>
-                Find complementary teammates interested in the same challenge. An explicit opt-in privacy consent model protects student identity while facilitating real multidisciplinary project teams.
+                Find complementary teammates interested in the same challenge. Explicit opt-in consent protects your identity while unlocking collaboration.
               </p>
             </div>
           </div>

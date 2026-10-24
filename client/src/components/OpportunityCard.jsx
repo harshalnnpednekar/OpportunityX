@@ -73,24 +73,19 @@ export default function OpportunityCard({ opportunity, onSavedChange }) {
           {opportunity.opportunityType}
         </span>
         <div className="card-badges-group">
-          {opportunity.isDemo && (
-            <span className="badge badge-demo" title="Curated demonstration entry for architectural modeling. Not a live-verified registration portal.">
-              DEMO LISTING
+          {opportunity.verified && (
+            <span className="badge badge-verified" style={{ fontSize: '0.725rem', padding: '0.15rem 0.5rem' }}>
+              Verified Host
             </span>
           )}
           {opportunity.beginnerFriendly && (
-            <span className="badge badge-verified" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }} title="Suitable for beginners and first-time applicants">
+            <span className="badge badge-verified" style={{ fontSize: '0.725rem', padding: '0.15rem 0.5rem' }} title="Suitable for beginners and first-time applicants">
               Beginner Friendly
             </span>
           )}
           {opportunity.sustainabilityFocused && (
-            <span className="badge badge-neutral" style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', color: '#0F766E', borderColor: '#CCFBF1', backgroundColor: '#F0FDFA' }} title="Sustainability and climate track">
+            <span className="badge badge-neutral" style={{ fontSize: '0.725rem', padding: '0.15rem 0.5rem', color: '#0F766E', borderColor: '#CCFBF1', backgroundColor: '#F0FDFA' }} title="Sustainability and climate track">
               Sustainability
-            </span>
-          )}
-          {opportunity.isDuplicate && (
-            <span className="badge badge-danger" title="Duplicate fingerprint detected">
-              DUPLICATE
             </span>
           )}
         </div>

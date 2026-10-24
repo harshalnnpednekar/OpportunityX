@@ -30,7 +30,7 @@ server/
 │   │   ├── rateLimiter.js
 │   │   ├── requestLogger.js
 │   │   └── validators.js
-│   ├── migrations/          # 10 sequential Sequelize migrations (001 - 010)
+│   ├── migrations/          # 11 sequential Sequelize migrations (001 - 011 including status column)
 │   ├── models/              # 10 Sequelize data models & relational associations
 │   ├── routes/              # Express route modules
 │   ├── scripts/             # Database automation CLI scripts (create, migrate, reset)

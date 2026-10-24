@@ -375,6 +375,7 @@ class FeedImporter {
     });
 
     const report = {
+      id: log.id,
       logId: log.id,
       feedName,
       feedType,

@@ -29,10 +29,44 @@ Existing search portals often rely on unexplainable "black-box" AI recommendatio
 - **Privacy-Preserving Peer Collaboration**: Browse fellow students who saved the same listing and opted into discovery. Inspect skill compatibility explanations, send collaboration requests, and unlock direct contact details only after mutual acceptance.
 
 ### Administrator Journeys
+- **Dedicated Curator & Admin Dashboard**: Real-time aggregated statistics (total students, active listings, expired/archived opportunities, curator count, and ingestion batches) powered directly by PostgreSQL queries.
+- **Platform User Management**: Search registered users, filter by role (`student` vs `admin`) and status (`active` vs `suspended`), inspect academic profiles, suspend/reactivate student accounts, and safely delete accounts with last-active-admin protection.
+- **Shared Opportunity Catalog Management**: Full CRUD access to create, update, archive, and delete opportunities with automatic fingerprinting and trust-score calculation.
 - **Data Health & Ingestion Hub**: Monitor database freshness, catalog completeness, expired listings, and contradiction flags.
 - **Feed Ingestion Pipeline**: Ingest whitelisted local sample feeds (JSON and XML) on demand, inspect real-time logs, verify fingerprint deduplication, and audit update detection.
 
 ---
+
+## 2.1 Role-Based Access Control (RBAC) & Security Architecture
+
+OpportunityX enforces strict, production-grade server-side Role-Based Access Control (RBAC) across all resources:
+
+### Roles & Capabilities
+| Capability / Resource | Student Role | Administrator Role | Unauthenticated Guest |
+| :--- | :---: | :---: | :---: |
+| Public catalog discovery & search | ✅ Full Access | ✅ Full Access | ✅ Full Access |
+| View opportunity specs & eligibility checks | ✅ Full Access | ✅ Full Access | ✅ Full Access |
+| Application pipeline & saved opportunities | ✅ Private to User | ✅ Own pipeline | ❌ 401 Unauthorized |
+| Milestone preparation roadmaps | ✅ Private to User | ✅ Own roadmaps | ❌ 401 Unauthorized |
+| Opt-in peer collaboration matching | ✅ Private to User | ✅ Optional | ❌ 401 Unauthorized |
+| Academic profile & preference management | ✅ Own Profile | ✅ Own Profile | ❌ 401 Unauthorized |
+| Account self-deletion (with safeguards) | ✅ Own Account | ✅ (If $>1$ active admin) | ❌ 401 Unauthorized |
+| Modify shared opportunity catalog | ❌ 403 Forbidden | ✅ Full CRUD | ❌ 401 Unauthorized |
+| Access Admin Dashboard & telemetry | ❌ 403 Forbidden | ✅ Full Access | ❌ 401 Unauthorized |
+| View platform user directory | ❌ 403 Forbidden | ✅ Full Access | ❌ 401 Unauthorized |
+| Suspend or reactivate student accounts | ❌ 403 Forbidden | ✅ Full Access | ❌ 401 Unauthorized |
+| Trigger feed ingestion batches | ❌ 403 Forbidden | ✅ Full Access | ❌ 401 Unauthorized |
+
+### Key Security Safeguards
+1. **Server-Enforced Authorization**: Roles are never trusted from the client. Every protected route enforces JWT verification (`requireAuth`), checks real-time database status (blocking `suspended` accounts with `403 Forbidden`), and verifies administrative role (`requireAdmin`).
+2. **Registration Sanitization**: Public registration (`POST /api/auth/register`) hardcodes `role: 'student'` and `status: 'active'`, completely ignoring client-supplied role parameters.
+3. **Account Suspension Lifecycle**: When an administrator suspends an account, active tokens and login attempts are immediately rejected on the server with `403 Forbidden`.
+4. **Last Administrator Safeguard**: The system prohibits an administrator from suspending, demoting, or deleting the last active administrator account, preventing accidental platform lockout.
+5. **Client Route Guards & Visual Feedback**: Frontend routes are guarded by `ProtectedRoute`. Students attempting direct URL navigation to `/admin` are presented with an aesthetic `AccessDeniedPage` (403 Forbidden) offering 1-click return to their student dashboard.
+
+### Demo Credentials
+- **Administrator**: `admin@opportunityx.edu` / `AdminPass123!` (Role: `admin`)
+- **Student**: `alex.chen@university.edu` / `AlexPass123!` (Role: `student`)
 
 ## 3. Architecture & Directory Structure
 

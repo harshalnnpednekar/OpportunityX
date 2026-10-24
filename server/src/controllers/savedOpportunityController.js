@@ -1,4 +1,5 @@
 const { SavedOpportunity, Opportunity } = require('../models');
+const { Op } = require('sequelize');
 
 /**
  * Get all saved opportunities for logged in student
@@ -111,9 +112,12 @@ const removeSaved = async (req, res, next) => {
     const { id } = req.params;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const where = { userId: req.user.id };
+    const where = {
+      userId: req.user.id
+    };
+
     if (isUuid) {
-      where.opportunityId = id;
+      where[Op.or] = [{ id }, { opportunityId: id }];
     } else {
       where.id = id;
     }

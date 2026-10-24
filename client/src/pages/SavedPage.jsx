@@ -154,11 +154,6 @@ export default function SavedPage() {
                       <span className="badge badge-neutral" style={{ fontSize: '0.725rem' }}>
                         {opp.opportunityType}
                       </span>
-                      {opp.isDemo && (
-                        <span className="badge badge-demo" style={{ fontSize: '0.725rem' }}>
-                          DEMO LISTING
-                        </span>
-                      )}
                     </div>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0.2rem 0' }}>
                       <Link to={`/opportunities/${opp.slug || opp.id}`} style={{ color: 'inherit' }}>

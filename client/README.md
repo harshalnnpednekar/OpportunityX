@@ -13,7 +13,6 @@ client/
 │   ├── main.jsx                # React root application bootstrap
 │   ├── App.jsx                 # Top-level routing, drawer state & layout
 │   ├── components/             # Reusable UI components & badges
-│   │   ├── DemoBanner.jsx      # Top demo status & context bar
 │   │   ├── EligibilityBadge.jsx# Visual eligibility indicator & tooltips
 │   │   ├── EmptyState.jsx      # Empty state cards with action buttons
 │   │   ├── ErrorBoundary.jsx   # React crash boundary with recovery

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { User, ShieldCheck, Check, Sparkles, Plus, X, Lock, DollarSign, Clock, MapPin, Award } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, ShieldCheck, Check, Sparkles, Plus, X, Lock, DollarSign, Clock, MapPin, Award, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -126,6 +128,57 @@ export default function ProfilePage() {
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err) {
       addToast(err.message || 'Failed to update profile', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetProfile = async () => {
+    if (!window.confirm('Are you sure you want to clear your private profile data? Your skills, interests, and matching preferences will be reset.')) return;
+    setLoading(true);
+    try {
+      await api.resetProfile();
+      addToast('Profile data reset to defaults.', 'info');
+      if (refreshUser) refreshUser();
+      setFormData({
+        fullName: user?.name || '',
+        bio: '',
+        educationLevel: 'undergraduate',
+        university: '',
+        major: '',
+        graduationYear: 2027,
+        country: 'USA',
+        skills: [],
+        interests: [],
+        budgetMax: 0.00,
+        availability: 'flexible',
+        experienceLevel: 'beginner',
+        preferredFormat: 'all',
+        preferredLocation: 'Global',
+        peerMatchingConsent: false,
+        matchingBio: '',
+        githubUrl: '',
+        portfolioUrl: ''
+      });
+    } catch (err) {
+      addToast(err.message || 'Failed to reset profile', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete your OpportunityX account? This action cannot be undone and will delete all your profile data, saved opportunities, and roadmaps.')) {
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.deleteAccount();
+      addToast('Your account has been deleted.', 'info');
+      await logout();
+      navigate('/');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete account', 'error');
     } finally {
       setLoading(false);
     }
@@ -497,21 +550,45 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Submit Button */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1rem' }}>
-          {savedSuccess && (
-            <span style={{ color: '#0D9488', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem' }}>
-              <Check size={16} />
-              <span>Saved successfully</span>
-            </span>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary btn-lg"
-          >
-            <span>{loading ? 'Saving Profile...' : 'Save Profile Settings'}</span>
-          </button>
+        {/* Action Buttons: Danger Zone & Save */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleResetProfile}
+              disabled={loading}
+              className="btn btn-outline"
+              style={{ color: '#DC2626', borderColor: 'rgba(220, 38, 38, 0.4)' }}
+            >
+              Reset Profile Data
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteAccount}
+              disabled={loading}
+              className="btn btn-outline"
+              style={{ color: '#EF4444', borderColor: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Trash2 size={14} />
+              Delete Account
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {savedSuccess && (
+              <span style={{ color: '#0D9488', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem' }}>
+                <Check size={16} />
+                <span>Saved successfully</span>
+              </span>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary btn-lg"
+            >
+              <span>{loading ? 'Saving Profile...' : 'Save Profile Settings'}</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>

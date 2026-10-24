@@ -104,7 +104,45 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete / Reset profile for logged-in user (DELETE /api/profile)
+ * Clears private profile fields to clean state
+ */
+const deleteProfile = async (req, res, next) => {
+  try {
+    let profile = await Profile.findOne({ where: { userId: req.user.id } });
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found.' });
+    }
+
+    await profile.update({
+      bio: '',
+      skills: [],
+      interests: [],
+      budgetMax: 0.00,
+      availability: 'flexible',
+      experienceLevel: 'beginner',
+      preferredFormat: 'all',
+      formatPreference: 'all',
+      preferredLocation: 'Global',
+      peerMatchingConsent: false,
+      isPublicForMatching: false,
+      matchingBio: '',
+      githubUrl: '',
+      portfolioUrl: ''
+    });
+
+    res.json({
+      message: 'Profile data reset successfully.',
+      profile
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getProfile,
-  updateProfile
+  updateProfile,
+  deleteProfile
 };

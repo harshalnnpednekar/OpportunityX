@@ -24,9 +24,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const loggedInUser = await login(email, password);
       addToast('Welcome back to OpportunityX!', 'success');
-      navigate(redirectPath);
+      if (loggedInUser?.role === 'admin' && (!location.state?.from || location.state?.from?.pathname === '/dashboard')) {
+        navigate('/admin');
+      } else {
+        navigate(redirectPath);
+      }
     } catch (err) {
       setErrorMsg(err.message || 'Invalid email or password');
     } finally {

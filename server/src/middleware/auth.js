@@ -60,6 +60,10 @@ const requireAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'User no longer exists.' });
     }
 
+    if (user.status === 'suspended') {
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact an administrator.' });
+    }
+
     req.user = user;
     next();
   } catch (err) {
@@ -78,7 +82,7 @@ const optionalAuth = async (req, res, next) => {
       const user = await User.findByPk(decoded.userId, {
         include: [{ model: StudentProfile, as: 'profile' }]
       });
-      if (user) {
+      if (user && user.status !== 'suspended') {
         req.user = user;
       }
     }
@@ -93,7 +97,7 @@ const optionalAuth = async (req, res, next) => {
  */
 const generateToken = (user) => {
   return jwt.sign(
-    { userId: user.id, email: user.email, role: user.role },
+    { userId: user.id, email: user.email, role: user.role, status: user.status || 'active' },
     JWT_SECRET,
     { expiresIn: '7d' }
   );

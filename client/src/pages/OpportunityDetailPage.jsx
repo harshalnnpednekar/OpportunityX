@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Calendar, Globe, Award, MapPin, ExternalLink, Bookmark, CheckCircle2,
   AlertTriangle, ShieldCheck, ArrowLeft, Users, Clock, Compass, Share2, Check,
-  Info, Sparkles, Layers, DollarSign, UserCheck, ShieldAlert
+  Info, Sparkles, Layers, DollarSign, UserCheck, ShieldAlert, Edit3, Trash2, X
 } from 'lucide-react';
 import MatchScoreBadge from '../components/MatchScoreBadge';
 import EligibilityBadge from '../components/EligibilityBadge';
@@ -15,7 +15,7 @@ import api from '../services/api';
 export default function OpportunityDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { addToast } = useToast();
 
   const [data, setData] = useState(null);
@@ -23,6 +23,8 @@ export default function OpportunityDetailPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [savedStatus, setSavedStatus] = useState('saved');
   const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
 
   useEffect(() => {
     async function loadDetail() {
@@ -101,6 +103,48 @@ export default function OpportunityDetailPage() {
     }
   };
 
+  const handleStartEdit = () => {
+    setEditFormData({
+      title: opp.title || '',
+      organization: opp.organization || opp.organizer || '',
+      description: opp.description || '',
+      category: opp.category || 'general',
+      eventType: opp.eventType || 'hackathon',
+      format: opp.deliveryFormat || opp.format || 'virtual',
+      location: opp.location || 'Online',
+      applicationDeadline: opp.applicationDeadline ? opp.applicationDeadline.split('T')[0] : '',
+      costAmount: opp.costAmount || 0,
+      status: opp.status || 'active'
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.updateOpportunity(opp.id, editFormData);
+      setData(prev => ({
+        ...prev,
+        opportunity: { ...prev.opportunity, ...res.opportunity }
+      }));
+      setIsEditing(false);
+      addToast('Opportunity updated successfully!', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to update opportunity', 'error');
+    }
+  };
+
+  const handleDeleteOpportunity = async () => {
+    if (!window.confirm(`Are you sure you want to delete "${opp.title}"? This action cannot be undone.`)) return;
+    try {
+      await api.deleteOpportunity(opp.id);
+      addToast('Opportunity deleted successfully.', 'info');
+      navigate('/explore');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete opportunity', 'error');
+    }
+  };
+
   if (loading) {
     return (
       <div className="container" style={{ padding: '4rem 1rem' }} aria-busy="true" aria-label="Loading opportunity details">
@@ -158,9 +202,9 @@ export default function OpportunityDetailPage() {
                 <span className="card-category-tag" style={{ fontSize: '0.8rem' }}>
                   {opp.opportunityType || opp.category}
                 </span>
-                {opp.isDemo && (
-                  <span className="badge badge-demo" title="Seeded demonstration record for modeling">
-                    DEMO LISTING
+                {opp.verified && (
+                  <span className="badge badge-verified" style={{ fontSize: '0.75rem' }}>
+                    Verified Host
                   </span>
                 )}
                 {opp.status === 'expired' && (
@@ -485,6 +529,44 @@ export default function OpportunityDetailPage() {
             </div>
           </div>
 
+          {/* Admin Management Card (Authorized Admins Only) */}
+          {user?.role === 'admin' && (
+            <div className="detail-meta-box" style={{ border: '1px solid rgba(220, 38, 38, 0.3)', backgroundColor: 'rgba(220, 38, 38, 0.03)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <ShieldAlert size={18} color="#DC2626" />
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#DC2626' }}>
+                    Curator Controls
+                  </h4>
+                </div>
+                <span className="badge badge-danger">Admin Only</span>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--ink-secondary)', marginBottom: '1rem' }}>
+                Manage or retire this shared opportunity across the OpportunityX global registry.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleStartEdit}
+                  className="btn btn-outline btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                >
+                  <Edit3 size={14} />
+                  <span>Edit Opportunity Listing</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteOpportunity}
+                  className="btn btn-outline btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', color: '#DC2626', borderColor: '#DC2626' }}
+                >
+                  <Trash2 size={14} />
+                  <span>Delete Opportunity</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Data Quality & Trust Signal Card */}
           <div className="detail-meta-box">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
@@ -529,6 +611,153 @@ export default function OpportunityDetailPage() {
           </div>
         </aside>
       </div>
+
+      {/* Admin Edit Modal */}
+      {isEditing && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '2rem',
+            width: '100%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: 'var(--shadow-modal)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 className="font-editorial" style={{ fontSize: '1.4rem', margin: 0 }}>
+                Edit Opportunity Listing
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-tertiary)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit}>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label">Opportunity Title</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editFormData.title || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label">Organizer / Organization</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editFormData.organization || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, organization: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Event Type</label>
+                  <select
+                    className="form-select"
+                    value={editFormData.eventType || 'hackathon'}
+                    onChange={(e) => setEditFormData({ ...editFormData, eventType: e.target.value })}
+                  >
+                    <option value="hackathon">Hackathon</option>
+                    <option value="competition">Competition</option>
+                    <option value="fellowship">Fellowship</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="research">Research</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Delivery Format</label>
+                  <select
+                    className="form-select"
+                    value={editFormData.format || 'virtual'}
+                    onChange={(e) => setEditFormData({ ...editFormData, format: e.target.value })}
+                  >
+                    <option value="virtual">Virtual</option>
+                    <option value="in_person">In-Person</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Application Deadline</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={editFormData.applicationDeadline || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, applicationDeadline: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Status</label>
+                  <select
+                    className="form-select"
+                    value={editFormData.status || 'active'}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                  >
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                    <option value="flagged">Flagged / Quarantine</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label">Description</label>
+                <textarea
+                  className="form-textarea"
+                  rows={4}
+                  value={editFormData.description || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="btn btn-outline btn-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,13 +2,24 @@ const express = require('express');
 const router = express.Router();
 const opportunityController = require('../controllers/opportunityController');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/admin');
 const { validateOpportunityQuery, validateUuidParam } = require('../middleware/validators');
 
 // Opportunity catalog with query filters
 router.get('/', optionalAuth, validateOpportunityQuery, opportunityController.getOpportunities);
 
+// Admin-only Create opportunity
+router.post('/', requireAuth, requireAdmin, opportunityController.createOpportunity);
+
 // Opportunity detail
 router.get('/:id', optionalAuth, opportunityController.getOpportunityDetail);
+
+// Admin-only Update opportunity
+router.put('/:id', requireAuth, requireAdmin, validateUuidParam('id'), opportunityController.updateOpportunity);
+router.patch('/:id', requireAuth, requireAdmin, validateUuidParam('id'), opportunityController.updateOpportunity);
+
+// Admin-only Delete opportunity
+router.delete('/:id', requireAuth, requireAdmin, validateUuidParam('id'), opportunityController.deleteOpportunity);
 
 // Eligibility evaluation for opportunity
 router.get('/:id/eligibility', optionalAuth, validateUuidParam('id'), opportunityController.getOpportunityEligibility);

@@ -9,5 +9,7 @@ router.post('/register', authRateLimiter, validateRegister, authController.regis
 router.post('/login', authRateLimiter, validateLogin, authController.login);
 router.post('/logout', authController.logout);
 router.get('/me', requireAuth, authController.getMe);
+router.delete('/account', requireAuth, authController.deleteMyAccount);
+router.delete('/me', requireAuth, authController.deleteMyAccount);
 
 module.exports = router;

@@ -53,10 +53,12 @@ export const api = {
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   getMe: () => request('/auth/me'),
+  deleteAccount: () => request('/auth/account', { method: 'DELETE' }),
 
   // Profile
   getProfile: () => request('/profile'),
   updateProfile: (profileData) => request('/profile', { method: 'PATCH', body: profileData }),
+  resetProfile: () => request('/profile', { method: 'DELETE' }),
 
   // Opportunities
   getOpportunities: (params = {}) => {
@@ -69,6 +71,9 @@ export const api = {
     return request(`/opportunities?${query.toString()}`);
   },
   getOpportunity: (id) => request(`/opportunities/${id}`),
+  createOpportunity: (data) => request('/opportunities', { method: 'POST', body: data }),
+  updateOpportunity: (id, data) => request(`/opportunities/${id}`, { method: 'PUT', body: data }),
+  deleteOpportunity: (id) => request(`/opportunities/${id}`, { method: 'DELETE' }),
   getEligibility: (id) => request(`/opportunities/${id}/eligibility`),
   saveOpportunityById: (id, data = {}) => request(`/opportunities/${id}/save`, { method: 'POST', body: data }),
   unsaveOpportunityById: (id) => request(`/opportunities/${id}/save`, { method: 'DELETE' }),
@@ -88,7 +93,9 @@ export const api = {
   generateRoadmap: (opportunityId) => request('/roadmaps/generate', { method: 'POST', body: { opportunityId } }),
   getRoadmaps: () => request('/roadmaps'),
   getRoadmap: (id) => request(`/roadmaps/${id}`),
+  addRoadmapTask: (roadmapId, data) => request(`/roadmaps/${roadmapId}/tasks`, { method: 'POST', body: data }),
   toggleRoadmapTask: (roadmapId, taskId) => request(`/roadmaps/${roadmapId}/tasks/${taskId}`, { method: 'PATCH' }),
+  deleteRoadmapTask: (roadmapId, taskId) => request(`/roadmaps/${roadmapId}/tasks/${taskId}`, { method: 'DELETE' }),
   deleteRoadmap: (id) => request(`/roadmaps/${id}`, { method: 'DELETE' }),
 
   // Notifications
@@ -106,9 +113,23 @@ export const api = {
   withdrawPeerConsent: () => request('/peers/consent', { method: 'DELETE' }),
 
   // Admin Tools
+  getAdminStats: () => request('/admin/stats'),
+  getAdminUsers: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        query.append(key, val);
+      }
+    });
+    return request(`/admin/users?${query.toString()}`);
+  },
+  updateUserStatus: (id, status) => request(`/admin/users/${id}/status`, { method: 'PATCH', body: { status } }),
+  updateUserRole: (id, role) => request(`/admin/users/${id}/role`, { method: 'PATCH', body: { role } }),
+  deleteAdminUser: (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
   getAdminHealth: () => request('/admin/health'),
   importFeed: (feedId) => request('/admin/feeds/import', { method: 'POST', body: { feedId } }),
   getAdminImports: (page = 1, limit = 20) => request(`/admin/imports?page=${page}&limit=${limit}`),
+  deleteAdminImport: (id) => request(`/admin/imports/${id}`, { method: 'DELETE' }),
   triggerFeedIngest: (payload) => request('/admin/ingest', { method: 'POST', body: payload }),
   getAdminLogs: () => request('/admin/logs')
 };

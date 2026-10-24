@@ -200,11 +200,114 @@ const deleteRoadmap = async (req, res, next) => {
   }
 };
 
+/**
+ * Add a custom milestone task to an existing roadmap (POST /api/roadmaps/:id/tasks)
+ */
+const addRoadmapTask = async (req, res, next) => {
+  try {
+    const roadmapId = req.params.id || req.params.roadmapId;
+    const { title, phase = 'Sprint Execution', description = '', dueDate = null } = req.body;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Task title is required.' });
+    }
+
+    const roadmap = await Roadmap.findOne({
+      where: { id: roadmapId, userId: req.user.id }
+    });
+
+    if (!roadmap) {
+      return res.status(404).json({ error: 'Roadmap not found.' });
+    }
+
+    const existingTasks = await RoadmapTask.findAll({
+      where: { roadmapId },
+      order: [['orderIndex', 'DESC']]
+    });
+
+    const nextOrder = existingTasks.length > 0 ? (existingTasks[0].orderIndex || 0) + 1 : 1;
+
+    const task = await RoadmapTask.create({
+      roadmapId,
+      phase,
+      title: title.trim(),
+      description: description.trim(),
+      dueDate: dueDate || null,
+      isCompleted: false,
+      orderIndex: nextOrder,
+      sortOrder: nextOrder
+    });
+
+    // Recalculate progress percentage
+    const allTasks = await RoadmapTask.findAll({ where: { roadmapId } });
+    const completedCount = allTasks.filter(t => t.isCompleted).length;
+    const progress = allTasks.length > 0 ? Math.round((completedCount / allTasks.length) * 100) : 0;
+
+    await roadmap.update({
+      progressPercentage: progress,
+      status: progress === 100 ? 'completed' : 'active'
+    });
+
+    res.status(201).json({
+      message: 'Milestone task added to roadmap.',
+      task,
+      progressPercentage: progress
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Delete a milestone task from a roadmap (DELETE /api/roadmaps/:id/tasks/:taskId)
+ */
+const deleteRoadmapTask = async (req, res, next) => {
+  try {
+    const roadmapId = req.params.id || req.params.roadmapId;
+    const { taskId } = req.params;
+
+    const roadmap = await Roadmap.findOne({
+      where: { id: roadmapId, userId: req.user.id }
+    });
+
+    if (!roadmap) {
+      return res.status(404).json({ error: 'Roadmap not found.' });
+    }
+
+    const deleted = await RoadmapTask.destroy({
+      where: { id: taskId, roadmapId }
+    });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Task not found in this roadmap.' });
+    }
+
+    // Recalculate progress percentage
+    const allTasks = await RoadmapTask.findAll({ where: { roadmapId } });
+    const completedCount = allTasks.filter(t => t.isCompleted).length;
+    const progress = allTasks.length > 0 ? Math.round((completedCount / allTasks.length) * 100) : 0;
+
+    await roadmap.update({
+      progressPercentage: progress,
+      status: progress === 100 && allTasks.length > 0 ? 'completed' : 'active'
+    });
+
+    res.json({
+      message: 'Task deleted from roadmap.',
+      progressPercentage: progress
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   generateRoadmap,
   getUserRoadmaps,
   getRoadmapById,
   updateRoadmapTask,
   toggleTaskCompletion: updateRoadmapTask,
+  addRoadmapTask,
+  deleteRoadmapTask,
   deleteRoadmap
 };
